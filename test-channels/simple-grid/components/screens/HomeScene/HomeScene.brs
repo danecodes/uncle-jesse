@@ -1,7 +1,7 @@
-' ********** Copyright 2019 Roku Corp.  All Rights Reserved. ********** 
+' ********** Copyright 2019 Roku Corp.  All Rights Reserved. **********
  ' inits grid screen
  ' creates all children
- ' sets all observers 
+ ' sets all observers
 Function Init()
     ' listen on port 8089
     ? "[HomeScene] Init"
@@ -14,15 +14,42 @@ Function Init()
 
     ' Observer to handle Item selection on RowList inside GridScreen (alias="GridScreen.rowItemSelected")
     m.top.observeField("rowItemSelected", "OnRowItemSelected")
-    
+
     ' loading indicator starts at initializatio of channel
     m.loadingIndicator = m.top.findNode("loadingIndicator")
 
-    feedTask = createObject("roSGNode", "FeedTask")
-    feedTask.requestUrl = "http://api.delvenetworks.com/rest/organizations/59021fabe3b645968e382ac726cd6c7b/channels/1cfd09ab38e54f48be8498e0249f5c83/media.rss"
-    feedTask.observeField("response", "OnFeedTaskResponse")
-    feedTask.control = "run"
-End Function 
+    ' Skip feed task — load hardcoded content directly for E2E testing
+    content = CreateTestContent()
+    m.top.gridContent = content
+End Function
+
+' Create hardcoded content for testing without a network dependency
+Function CreateTestContent()
+    RowItems = createObject("RoSGNode","ContentNode")
+
+    titles = ["Action Movies", "Comedy Shows"]
+
+    for rowIdx = 0 to 1
+        row = createObject("RoSGNode","ContentNode")
+        row.Title = titles[rowIdx]
+
+        for i = 0 to 4
+            item = createObject("RoSGNode","ContentNode")
+            item.Title = titles[rowIdx] + " Item " + str(i + 1).trim()
+            item.Description = "Test content item " + str(i + 1).trim() + " for E2E testing"
+            item.ReleaseDate = "2024"
+            item.HDPosterUrl = "https://picsum.photos/262/147?random=" + str(rowIdx * 10 + i).trim()
+            item.hdBackgroundImageUrl = "https://picsum.photos/1280/720?random=" + str(rowIdx * 10 + i).trim()
+            item.url = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+            item.streamFormat = "mp4"
+            row.appendChild(item)
+        end for
+
+        RowItems.appendChild(row)
+    end for
+
+    return RowItems
+End Function
 
 ' When the FeedTask finishes retrieving and formatting a response,
 ' this function will create the content nodes and format it so the
@@ -34,15 +61,13 @@ end Function
 
 Function CreateContentNodes(list As Object)
     RowItems = createObject("RoSGNode","ContentNode")
-    
+
     for each rowAA in list
-    'for index = 0 to 1
         row = createObject("RoSGNode","ContentNode")
         row.Title = rowAA.Title
 
         for each itemAA in rowAA.ContentList
             item = createObject("RoSGNode","ContentNode")
-            ' We don't use item.setFields(itemAA) as doesn't cast streamFormat to proper value
             for each key in itemAA
                 item[key] = itemAA[key]
             end for

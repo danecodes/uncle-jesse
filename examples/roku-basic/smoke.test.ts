@@ -24,11 +24,12 @@ test('can navigate grid with D-pad', async ({ tv }) => {
 test('selecting grid item shows details screen', async ({ tv }) => {
   await tv.select();
 
-  // DetailsScreen should become visible
-  const details = await tv.waitForElement('DetailsScreen[visible="true"]');
+  // DetailsScreen gets focused when shown (GridScreen gets visible="false",
+  // but DetailsScreen's visible attr is absent when true — Roku default)
+  const details = await tv.waitForElement('DetailsScreen[focused="true"]');
   expect(details).toExist();
 
-  // Buttons should have focus
+  // Buttons should exist
   const buttons = await tv.waitForElement('LabelList#Buttons');
   expect(buttons).toExist();
 });
@@ -36,6 +37,9 @@ test('selecting grid item shows details screen', async ({ tv }) => {
 test('back from details returns to grid', async ({ tv }) => {
   await tv.back();
 
-  const grid = await tv.waitForElement('GridScreen[visible="true"]');
+  // GridScreen regains focus when returning from details
+  const grid = await tv.waitForElement('GridScreen');
   expect(grid).toExist();
+  // GridScreen should no longer have visible="false"
+  expect(grid.getAttribute('visible')).not.toBe('false');
 });
