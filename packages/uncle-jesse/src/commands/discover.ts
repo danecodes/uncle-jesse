@@ -7,7 +7,7 @@ export async function runDiscover(options: { timeout: string }): Promise<void> {
 
   try {
     const discovery = new RokuDiscovery();
-    const devices = await discovery.findAll({ timeout });
+    const devices = await discovery.scan({ timeout });
 
     if (devices.length === 0) {
       console.log(chalk.yellow('No devices found.'));
@@ -15,13 +15,26 @@ export async function runDiscover(options: { timeout: string }): Promise<void> {
       return;
     }
 
-    console.log(chalk.green(`Found ${devices.length} device${devices.length > 1 ? 's' : ''}:\n`));
+    const reachable = devices.filter((d) => d.reachable);
+    const unreachable = devices.filter((d) => !d.reachable);
 
-    for (const device of devices) {
-      console.log(`  ${chalk.bold(device.name)}`);
-      console.log(`  ${chalk.dim('IP:')} ${device.ip}`);
-      console.log(`  ${chalk.dim('Platform:')} ${device.platform}`);
-      console.log('');
+    if (reachable.length > 0) {
+      console.log(chalk.green(`Found ${reachable.length} reachable device${reachable.length > 1 ? 's' : ''}:\n`));
+      for (const device of reachable) {
+        console.log(`  ${chalk.bold(device.name)}`);
+        console.log(`  ${chalk.dim('IP:')} ${device.ip}`);
+        console.log('');
+      }
+    }
+
+    if (unreachable.length > 0) {
+      console.log(chalk.yellow(`${unreachable.length} device${unreachable.length > 1 ? 's' : ''} responded to SSDP but ECP is unreachable:\n`));
+      for (const device of unreachable) {
+        console.log(`  ${chalk.dim('IP:')} ${device.ip}`);
+        console.log(`  ${chalk.dim('Error:')} ${device.error}`);
+        console.log(`  ${chalk.dim('Tip:')} Enable developer mode on this device`);
+        console.log('');
+      }
     }
   } catch (err) {
     if (err instanceof Error && err.message.includes('timeout')) {
