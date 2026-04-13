@@ -23,11 +23,11 @@ The builder has `@danecodes/roku-ecp` published on npm — Uncle Jesse wraps it.
 ```
   Test Script (user code)
         |
-  @uncle-jesse/test    (expect API, focusPath builder, vitest plugin)
+  @danecodes/uncle-jesse-test    (expect API, focusPath builder, vitest plugin)
         |
-  @uncle-jesse/core    (TVDevice interface, DeviceManager, UIElement, selectors)
+  @danecodes/uncle-jesse-core    (TVDevice interface, DeviceManager, UIElement, selectors)
         |
-  @uncle-jesse/roku    (adapter wrapping @danecodes/roku-ecp)
+  @danecodes/uncle-jesse-roku    (adapter wrapping @danecodes/roku-ecp)
         |
   ECP HTTP API (port 8060 on device)
 ```
@@ -107,11 +107,11 @@ Turns "test failed at step 7 of 12" into something you can watch. This is the RE
 - `waitForElement`/`waitForFocus` throw `TimeoutError` with selector, elapsed time, and last UI tree state
 - Device unreachable mid-test throws `DeviceConnectionError` — test runner marks as errored (not failed)
 - ECP HTTP errors (non-200) throw `ECPError` with status code and endpoint
-- All error types exported from `@uncle-jesse/core/errors`
+- All error types exported from `@danecodes/uncle-jesse-core/errors`
 
 ## Package Breakdown
 
-**@uncle-jesse/core** — platform-agnostic interfaces and utilities:
+**@danecodes/uncle-jesse-core** — platform-agnostic interfaces and utilities:
 - `TVDevice` interface
 - `UIElement` class with query methods
 - `SelectorEngine` — CSS-like selector parser (delegates to roku-ecp's engine for Roku; future adapters provide their own)
@@ -121,13 +121,13 @@ Turns "test failed at step 7 of 12" into something you can watch. This is the RE
 - Types: `Platform`, `RemoteKey`, `Direction`, `WaitOptions`, `AppInfo`
 - Errors: `TimeoutError`, `DeviceConnectionError`, `ECPError`
 
-**@uncle-jesse/roku** — implements TVDevice for Roku:
+**@danecodes/uncle-jesse-roku** — implements TVDevice for Roku:
 - `RokuAdapter` wrapping `@danecodes/roku-ecp`
 - `RokuKeyMap` — unified RemoteKey to ECP key names
 - `RokuUIParser` — XML to UIElement tree
 - `RokuDiscovery` — SSDP for `roku:ecp`
 
-**@uncle-jesse/test** — testing API:
+**@danecodes/uncle-jesse-test** — testing API:
 - `focusPath()` builder
 - Assertion methods: `toBeFocused()`, `toBeVisible()`, `toHaveText()`, `toExist()`, `toHaveAttribute()`
 - `TVPage` base class for Page Object Model
@@ -185,7 +185,7 @@ jobs:
 
 ```typescript
 // uncle-jesse.config.ts
-import { defineConfig } from '@uncle-jesse/core';
+import { defineConfig } from '@danecodes/uncle-jesse-core';
 
 export default defineConfig({
   devices: [
@@ -241,9 +241,9 @@ uncle-jesse/
 
 ### Phase 1 — Foundation + Roku
 1. Scaffold monorepo (pnpm workspace, turborepo, tsconfig, four packages)
-2. `@uncle-jesse/core` — TVDevice interface, UIElement, SelectorEngine, types, config loader, errors
-3. `@uncle-jesse/roku` — RokuAdapter wrapping `@danecodes/roku-ecp`, key mapping, UI parser, discovery
-4. `@uncle-jesse/test` — focusPath() builder, assertion matchers, vitest plugin with `tv` fixture
+2. `@danecodes/uncle-jesse-core` — TVDevice interface, UIElement, SelectorEngine, types, config loader, errors
+3. `@danecodes/uncle-jesse-roku` — RokuAdapter wrapping `@danecodes/roku-ecp`, key mapping, UI parser, discovery
+4. `@danecodes/uncle-jesse-test` — focusPath() builder, assertion matchers, vitest plugin with `tv` fixture
 5. CLI — `uncle-jesse test`, `uncle-jesse discover`, console + JUnit reporters
 6. Examples — roku-basic, roku-focus-path, roku-page-objects
 7. README with demo GIF, publish to npm via changesets
@@ -254,12 +254,12 @@ uncle-jesse/
 - Integrate into failure output: "View replay: file://test-results/hero-nav-replay.html"
 
 ### Phase 2 — WebOS Adapter (ROADMAP.md)
-- `@uncle-jesse/webos` — SSAP WebSocket + Chrome DevTools Protocol adapter
+- `@danecodes/uncle-jesse-webos` — SSAP WebSocket + Chrome DevTools Protocol adapter
 - Headless mode for WebOS apps (Chromium, no physical TV)
 - Cross-platform examples, `onPlatform()` blocks, PageManager
 
 ### Phase 3 — Device Dashboard (ROADMAP.md)
-- `@uncle-jesse/dashboard` — local web UI via `uncle-jesse dashboard`
+- `@danecodes/uncle-jesse-dashboard` — local web UI via `uncle-jesse dashboard`
 - Device fleet grid: model, firmware, IP, online/offline, app versions, dev mode token status
 - Test run history: pass/fail per device, failure screenshots, run-from-dashboard
 - Backend: Express/Fastify + WebSocket for live status
@@ -280,7 +280,7 @@ uncle-jesse/
 - A developer unfamiliar with Uncle Jesse can write a new test in under 15 minutes using examples
 - All 188 selector patterns from production audit work correctly
 - README has a demo GIF showing focusPath in action
-- Published to npm as `@uncle-jesse/core`, `@uncle-jesse/roku`, `@uncle-jesse/test`
+- Published to npm as `@danecodes/uncle-jesse-core`, `@danecodes/uncle-jesse-roku`, `@danecodes/uncle-jesse-test`
 - Vitest plugin works with `tv` fixture injection
 
 ## Verification Plan

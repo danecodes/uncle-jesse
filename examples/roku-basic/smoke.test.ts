@@ -1,4 +1,4 @@
-import { test } from '@uncle-jesse/test';
+import { test } from '@danecodes/uncle-jesse-test';
 import { expect } from 'vitest';
 
 test('app launches and shows grid screen', async ({ tv }) => {

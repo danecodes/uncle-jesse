@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { RokuDiscovery } from '@uncle-jesse/roku';
+import { RokuDiscovery } from '@danecodes/uncle-jesse-roku';
 
 export async function runDiscover(options: { timeout: string }): Promise<void> {
   const timeout = Number(options.timeout);

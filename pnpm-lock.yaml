@@ -29,37 +29,37 @@ importers:
 
   examples/roku-basic:
     dependencies:
-      '@uncle-jesse/core':
+      '@danecodes/uncle-jesse-core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@uncle-jesse/roku':
+      '@danecodes/uncle-jesse-roku':
         specifier: workspace:*
         version: link:../../packages/roku
-      '@uncle-jesse/test':
+      '@danecodes/uncle-jesse-test':
         specifier: workspace:*
         version: link:../../packages/test
 
   examples/roku-focus-path:
     dependencies:
-      '@uncle-jesse/core':
+      '@danecodes/uncle-jesse-core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@uncle-jesse/roku':
+      '@danecodes/uncle-jesse-roku':
         specifier: workspace:*
         version: link:../../packages/roku
-      '@uncle-jesse/test':
+      '@danecodes/uncle-jesse-test':
         specifier: workspace:*
         version: link:../../packages/test
 
   examples/roku-page-objects:
     dependencies:
-      '@uncle-jesse/core':
+      '@danecodes/uncle-jesse-core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@uncle-jesse/roku':
+      '@danecodes/uncle-jesse-roku':
         specifier: workspace:*
         version: link:../../packages/roku
-      '@uncle-jesse/test':
+      '@danecodes/uncle-jesse-test':
         specifier: workspace:*
         version: link:../../packages/test
 
@@ -74,13 +74,13 @@ importers:
       '@danecodes/roku-ecp':
         specifier: ^0.3.3
         version: 0.3.3
-      '@uncle-jesse/core':
+      '@danecodes/uncle-jesse-core':
         specifier: workspace:*
         version: link:../core
 
   packages/test:
     dependencies:
-      '@uncle-jesse/core':
+      '@danecodes/uncle-jesse-core':
         specifier: workspace:*
         version: link:../core
       vitest:
@@ -89,13 +89,13 @@ importers:
 
   packages/uncle-jesse:
     dependencies:
-      '@uncle-jesse/core':
+      '@danecodes/uncle-jesse-core':
         specifier: workspace:*
         version: link:../core
-      '@uncle-jesse/roku':
+      '@danecodes/uncle-jesse-roku':
         specifier: workspace:*
         version: link:../roku
-      '@uncle-jesse/test':
+      '@danecodes/uncle-jesse-test':
         specifier: workspace:*
         version: link:../test
       chalk:

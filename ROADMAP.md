@@ -4,13 +4,13 @@ Phase 1 (Roku foundation) and Phase 1.5 (visual replay debugger) are complete.
 
 ## Phase 2 - WebOS Adapter
 
-- `@uncle-jesse/webos` package using SSAP WebSocket + Chrome DevTools Protocol
+- `@danecodes/uncle-jesse-webos` package using SSAP WebSocket + Chrome DevTools Protocol
 - Headless mode for WebOS apps via Chromium (no physical TV needed)
 - Cross-platform test helpers and `onPlatform()` blocks
 
 ## Phase 3 - Device Dashboard
 
-- `@uncle-jesse/dashboard` local web UI, launched via `uncle-jesse dashboard`
+- `@danecodes/uncle-jesse-dashboard` local web UI, launched via `uncle-jesse dashboard`
 - Fleet overview: model, firmware, IP, online/offline status, app versions
 - Test run history with pass/fail per device and failure screenshots
 

@@ -1,4 +1,4 @@
-import type { TVDevice, UIElement } from '@uncle-jesse/core';
+import type { TVDevice, UIElement } from '@danecodes/uncle-jesse-core';
 
 export abstract class TVPage {
   protected device: TVDevice;

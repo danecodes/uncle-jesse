@@ -1,4 +1,4 @@
-import { test } from '@uncle-jesse/test';
+import { test } from '@danecodes/uncle-jesse-test';
 import { expect } from 'vitest';
 import { GridScreen } from './pages/grid-screen.js';
 import { DetailsScreen } from './pages/details-screen.js';

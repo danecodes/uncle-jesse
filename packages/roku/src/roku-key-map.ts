@@ -1,4 +1,4 @@
-import type { RemoteKey } from '@uncle-jesse/core';
+import type { RemoteKey } from '@danecodes/uncle-jesse-core';
 import type { KeyName } from '@danecodes/roku-ecp';
 
 export const RokuKeyMap: Record<RemoteKey, KeyName> = {

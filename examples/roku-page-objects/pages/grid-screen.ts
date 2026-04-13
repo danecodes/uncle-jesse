@@ -1,4 +1,4 @@
-import { TVPage } from '@uncle-jesse/test';
+import { TVPage } from '@danecodes/uncle-jesse-test';
 
 export class GridScreen extends TVPage {
   async isVisible(): Promise<boolean> {

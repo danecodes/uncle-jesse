@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { RokuKeyMap } from '../src/roku-key-map.js';
-import type { RemoteKey } from '@uncle-jesse/core';
+import type { RemoteKey } from '@danecodes/uncle-jesse-core';
 
 describe('RokuKeyMap', () => {
   const expectedMappings: [RemoteKey, string][] = [

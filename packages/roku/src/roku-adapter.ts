@@ -9,7 +9,7 @@ import {
   UIElement,
   DeviceConnectionError,
   TimeoutError,
-} from '@uncle-jesse/core';
+} from '@danecodes/uncle-jesse-core';
 import { RokuKeyMap } from './roku-key-map.js';
 
 export class RokuAdapter implements TVDevice {

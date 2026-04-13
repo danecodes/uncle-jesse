@@ -7,7 +7,7 @@ Uncle Jesse talks directly to the Roku External Control Protocol (ECP) on port 8
 ## Install
 
 ```bash
-npm install @uncle-jesse/core @uncle-jesse/roku @uncle-jesse/test
+npm install @danecodes/uncle-jesse-core @danecodes/uncle-jesse-roku @danecodes/uncle-jesse-test
 ```
 
 ## Quick Start
@@ -16,7 +16,7 @@ npm install @uncle-jesse/core @uncle-jesse/roku @uncle-jesse/test
 
 ```typescript
 // uncle-jesse.config.ts
-import { defineConfig } from '@uncle-jesse/core';
+import { defineConfig } from '@danecodes/uncle-jesse-core';
 
 export default defineConfig({
   devices: [
@@ -36,8 +36,8 @@ export default defineConfig({
 
 ```typescript
 // setup.ts
-import { setDeviceFactory } from '@uncle-jesse/test';
-import { RokuAdapter } from '@uncle-jesse/roku';
+import { setDeviceFactory } from '@danecodes/uncle-jesse-test';
+import { RokuAdapter } from '@danecodes/uncle-jesse-roku';
 import config from './uncle-jesse.config.js';
 
 const device = config.devices[0];
@@ -68,7 +68,7 @@ export default defineConfig({
 ### 3. Write a test
 
 ```typescript
-import { test } from '@uncle-jesse/test';
+import { test } from '@danecodes/uncle-jesse-test';
 import { expect } from 'vitest';
 
 test('app launches and shows grid', async ({ tv }) => {
@@ -91,7 +91,7 @@ npx vitest run
 A chainable builder for verifying D-pad spatial navigation. It runs every step and collects all failures instead of bailing on the first one, so you can see the full scope of a broken nav flow at once.
 
 ```typescript
-import { test, focusPath } from '@uncle-jesse/test';
+import { test, focusPath } from '@danecodes/uncle-jesse-test';
 import { expect } from 'vitest';
 
 test('hero carousel navigation', async ({ tv }) => {
@@ -132,7 +132,7 @@ expect(element).toHaveAttribute('opacity', '1.0');
 Wrap screen-specific selectors and actions in classes that extend `TVPage`:
 
 ```typescript
-import { TVPage } from '@uncle-jesse/test';
+import { TVPage } from '@danecodes/uncle-jesse-test';
 
 class GridScreen extends TVPage {
   async waitForLoad() {
@@ -162,7 +162,7 @@ const result = await focusPath(tv, { record: true, testName: 'hero nav' })
   .verify();
 
 if (result.replay) {
-  const { saveReplay } = await import('@uncle-jesse/test');
+  const { saveReplay } = await import('@danecodes/uncle-jesse-test');
   await saveReplay(result.replay, './test-results');
   // Writes test-results/hero-nav-replay.html
 }
@@ -177,7 +177,7 @@ npx uncle-jesse discover
 ```
 
 ```typescript
-import { RokuDiscovery } from '@uncle-jesse/roku';
+import { RokuDiscovery } from '@danecodes/uncle-jesse-roku';
 
 const discovery = new RokuDiscovery();
 const devices = await discovery.findAll({ timeout: 5000 });
@@ -220,11 +220,11 @@ jobs:
 ```
 Test Script (user code)
       |
-@uncle-jesse/test    expect API, focusPath, vitest plugin
+@danecodes/uncle-jesse-test    expect API, focusPath, vitest plugin
       |
-@uncle-jesse/core    TVDevice interface, UIElement, selectors
+@danecodes/uncle-jesse-core    TVDevice interface, UIElement, selectors
       |
-@uncle-jesse/roku    adapter wrapping @danecodes/roku-ecp
+@danecodes/uncle-jesse-roku    adapter wrapping @danecodes/roku-ecp
       |
 ECP HTTP API         port 8060 on the Roku device
 ```
@@ -233,9 +233,9 @@ ECP HTTP API         port 8060 on the Roku device
 
 | Package | Description |
 |---------|-------------|
-| `@uncle-jesse/core` | Platform-agnostic interfaces, UIElement, SelectorEngine, config |
-| `@uncle-jesse/roku` | Roku adapter wrapping [@danecodes/roku-ecp](https://github.com/danecodes/roku-ecp) |
-| `@uncle-jesse/test` | focusPath, assertions, vitest plugin, TVPage |
+| `@danecodes/uncle-jesse-core` | Platform-agnostic interfaces, UIElement, SelectorEngine, config |
+| `@danecodes/uncle-jesse-roku` | Roku adapter wrapping [@danecodes/roku-ecp](https://github.com/danecodes/roku-ecp) |
+| `@danecodes/uncle-jesse-test` | focusPath, assertions, vitest plugin, TVPage |
 | `uncle-jesse` | CLI and reporters (console, JUnit XML) |
 
 ## Examples

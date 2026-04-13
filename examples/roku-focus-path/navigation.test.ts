@@ -1,4 +1,4 @@
-import { test, focusPath } from '@uncle-jesse/test';
+import { test, focusPath } from '@danecodes/uncle-jesse-test';
 import { expect } from 'vitest';
 
 test('grid row navigation', async ({ tv }) => {

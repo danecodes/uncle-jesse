@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { focusPath } from '../src/focus-path.js';
-import type { TVDevice } from '@uncle-jesse/core';
-import { UIElement } from '@uncle-jesse/core';
+import type { TVDevice } from '@danecodes/uncle-jesse-core';
+import { UIElement } from '@danecodes/uncle-jesse-core';
 
 function mockDevice(focusSequence: (string | undefined)[]): TVDevice {
   let callIdx = 0;

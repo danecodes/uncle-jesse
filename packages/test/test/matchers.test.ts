@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { UIElement, setDefaultQueryEngine, SelectorEngine } from '@uncle-jesse/core';
+import { UIElement, setDefaultQueryEngine, SelectorEngine } from '@danecodes/uncle-jesse-core';
 import { tvMatchers } from '../src/matchers.js';
 
 setDefaultQueryEngine(new SelectorEngine());

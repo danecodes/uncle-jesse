@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { UIElement, setDefaultQueryEngine, SelectorEngine } from '@uncle-jesse/core';
+import { UIElement, setDefaultQueryEngine, SelectorEngine } from '@danecodes/uncle-jesse-core';
 import { ReplayRecorder } from '../src/replay/recorder.js';
 import { generateReplayHtml } from '../src/replay/viewer.js';
 
@@ -60,7 +60,7 @@ describe('generateReplayHtml', () => {
     expect(html).toContain('<!DOCTYPE html>');
     expect(html).toContain('html test');
     expect(html).toContain('FAILED');
-    expect(html).toContain('const frames =');
+    expect(html).toContain('var frames =');
     expect(html).toContain('Step 1');
     // Contains the slider
     expect(html).toContain('input type="range"');

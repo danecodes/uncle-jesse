@@ -1,4 +1,4 @@
-import { defineConfig } from '@uncle-jesse/core';
+import { defineConfig } from '@danecodes/uncle-jesse-core';
 
 export default defineConfig({
   devices: [

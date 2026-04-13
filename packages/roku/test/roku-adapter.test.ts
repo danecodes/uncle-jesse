@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RokuAdapter } from '../src/roku-adapter.js';
-import { DeviceConnectionError } from '@uncle-jesse/core';
+import { DeviceConnectionError } from '@danecodes/uncle-jesse-core';
 
 const mockClient = {
   queryDeviceInfo: vi.fn(),

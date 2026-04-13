@@ -23,9 +23,9 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@uncle-jesse/core": "workspace:*",
-    "@uncle-jesse/roku": "workspace:*",
-    "@uncle-jesse/test": "workspace:*",
+    "@danecodes/uncle-jesse-core": "workspace:*",
+    "@danecodes/uncle-jesse-roku": "workspace:*",
+    "@danecodes/uncle-jesse-test": "workspace:*",
     "commander": "^13.0.0",
     "chalk": "^5.4.0"
   },

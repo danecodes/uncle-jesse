@@ -1,5 +1,5 @@
 {
-  "name": "@uncle-jesse/roku",
+  "name": "@danecodes/uncle-jesse-roku",
   "version": "0.0.1",
   "type": "module",
   "exports": {
@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@danecodes/roku-ecp": "^0.3.3",
-    "@uncle-jesse/core": "workspace:*"
+    "@danecodes/uncle-jesse-core": "workspace:*"
   },
   "engines": {
     "node": ">=20"

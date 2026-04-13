@@ -1,4 +1,4 @@
-import type { UIElement } from '@uncle-jesse/core';
+import type { UIElement } from '@danecodes/uncle-jesse-core';
 import type { ReplayFrame, ReplayNode, ReplayTimeline } from './types.js';
 
 function elementToReplayNode(el: UIElement): ReplayNode {

@@ -1,5 +1,5 @@
 import { test as baseTest, expect } from 'vitest';
-import type { TVDevice } from '@uncle-jesse/core';
+import type { TVDevice } from '@danecodes/uncle-jesse-core';
 import { tvMatchers } from './matchers.js';
 
 export interface TVFixtures {

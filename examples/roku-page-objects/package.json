@@ -1,10 +1,10 @@
 {
-  "name": "@uncle-jesse/example-roku-page-objects",
+  "name": "@danecodes/uncle-jesse-example-roku-page-objects",
   "private": true,
   "type": "module",
   "dependencies": {
-    "@uncle-jesse/core": "workspace:*",
-    "@uncle-jesse/roku": "workspace:*",
-    "@uncle-jesse/test": "workspace:*"
+    "@danecodes/uncle-jesse-core": "workspace:*",
+    "@danecodes/uncle-jesse-roku": "workspace:*",
+    "@danecodes/uncle-jesse-test": "workspace:*"
   }
 }

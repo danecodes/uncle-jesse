@@ -1,4 +1,4 @@
-import type { TVDevice, RemoteKey } from '@uncle-jesse/core';
+import type { TVDevice, RemoteKey } from '@danecodes/uncle-jesse-core';
 import { ReplayRecorder } from './replay/recorder.js';
 import type { ReplayTimeline } from './replay/types.js';
 

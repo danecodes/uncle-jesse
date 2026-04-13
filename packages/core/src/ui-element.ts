@@ -61,12 +61,12 @@ export class UIElement {
   }
 
   $(selector: string): UIElement | null {
-    if (!defaultEngine) throw new Error('No query engine configured. Import @uncle-jesse/core to initialize.');
+    if (!defaultEngine) throw new Error('No query engine configured. Import @danecodes/uncle-jesse-core to initialize.');
     return defaultEngine.query(this, selector);
   }
 
   $$(selector: string): UIElement[] {
-    if (!defaultEngine) throw new Error('No query engine configured. Import @uncle-jesse/core to initialize.');
+    if (!defaultEngine) throw new Error('No query engine configured. Import @danecodes/uncle-jesse-core to initialize.');
     return defaultEngine.queryAll(this, selector);
   }
 
