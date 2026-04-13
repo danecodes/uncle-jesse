@@ -1,4 +1,6 @@
 import type { TVDevice, RemoteKey } from '@uncle-jesse/core';
+import { ReplayRecorder } from './replay/recorder.js';
+import type { ReplayTimeline } from './replay/types.js';
 
 interface FocusPathStep {
   key: RemoteKey;
@@ -8,6 +10,7 @@ interface FocusPathStep {
 export interface FocusPathResult {
   passed: boolean;
   failures: FocusPathFailure[];
+  replay?: ReplayTimeline;
 }
 
 export interface FocusPathFailure {
@@ -18,13 +21,20 @@ export interface FocusPathFailure {
   message: string;
 }
 
+export interface FocusPathOptions {
+  record?: boolean;
+  testName?: string;
+}
+
 class FocusPathBuilder {
   private device: TVDevice;
   private startSelector: string | null = null;
   private steps: FocusPathStep[] = [];
+  private options: FocusPathOptions;
 
-  constructor(device: TVDevice) {
+  constructor(device: TVDevice, options: FocusPathOptions = {}) {
     this.device = device;
+    this.options = options;
   }
 
   start(selector: string): this {
@@ -43,6 +53,9 @@ class FocusPathBuilder {
 
   async verify(): Promise<FocusPathResult> {
     const failures: FocusPathFailure[] = [];
+    const recorder = this.options.record
+      ? new ReplayRecorder(this.options.testName ?? 'focusPath')
+      : null;
 
     if (this.startSelector) {
       await this.device.waitForFocus(this.startSelector);
@@ -55,8 +68,9 @@ class FocusPathBuilder {
       const focused = await this.device.getFocusedElement();
       const focusedId = focused?.id;
       const expectedId = step.expectedSelector.replace(/^#/, '');
+      const passed = focusedId === expectedId;
 
-      if (focusedId !== expectedId) {
+      if (!passed) {
         failures.push({
           step: i + 1,
           key: step.key,
@@ -65,12 +79,30 @@ class FocusPathBuilder {
           message: `Step ${i + 1}: After pressing ${step.key.toUpperCase()}, expected focus on ${step.expectedSelector} but found focus on ${focusedId ? '#' + focusedId : '<nothing>'}`,
         });
       }
+
+      if (recorder) {
+        const tree = await this.device.getUITree();
+        recorder.recordStep(
+          i + 1,
+          step.key,
+          step.expectedSelector,
+          focusedId,
+          passed,
+          tree,
+        );
+      }
     }
 
-    return {
+    const result: FocusPathResult = {
       passed: failures.length === 0,
       failures,
     };
+
+    if (recorder) {
+      result.replay = recorder.toTimeline();
+    }
+
+    return result;
   }
 }
 
@@ -88,6 +120,6 @@ class FocusPathExpect {
   }
 }
 
-export function focusPath(device: TVDevice): FocusPathBuilder {
-  return new FocusPathBuilder(device);
+export function focusPath(device: TVDevice, options?: FocusPathOptions): FocusPathBuilder {
+  return new FocusPathBuilder(device, options);
 }

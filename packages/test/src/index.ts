@@ -1,5 +1,5 @@
 export { focusPath } from './focus-path.js';
-export type { FocusPathResult, FocusPathFailure } from './focus-path.js';
+export type { FocusPathResult, FocusPathFailure, FocusPathOptions } from './focus-path.js';
 export { TVPage } from './tv-page.js';
 export { test, setDeviceFactory } from './fixture.js';
 export type { TVFixtures } from './fixture.js';
@@ -7,4 +7,6 @@ export { tvMatchers } from './matchers.js';
 export type { TVMatchers } from './matchers.js';
 export { uncleJessePlugin } from './vitest-plugin.js';
 export type { UncleJessePluginOptions } from './vitest-plugin.js';
+export { ReplayRecorder, generateReplayHtml, saveReplay } from './replay/index.js';
+export type { ReplayFrame, ReplayNode, ReplayTimeline } from './replay/index.js';
 import './types.js';
