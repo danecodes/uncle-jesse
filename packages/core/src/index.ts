@@ -8,12 +8,18 @@ export type {
   DeviceConfig,
   UncleJesseConfig,
 } from './types.js';
-export { UIElement } from './ui-element.js';
+export { UIElement, setDefaultQueryEngine } from './ui-element.js';
+export type { ElementQueryEngine } from './ui-element.js';
 export { SelectorEngine } from './selector-engine.js';
 export { DeviceManager } from './device-manager.js';
-export { defineConfig } from './config.js';
+export { defineConfig, loadConfig, loadConfigFromFile } from './config.js';
 export {
   TimeoutError,
   DeviceConnectionError,
   ECPError,
 } from './errors.js';
+
+// Initialize the default query engine so UIElement.$() works out of the box
+import { SelectorEngine } from './selector-engine.js';
+import { setDefaultQueryEngine } from './ui-element.js';
+setDefaultQueryEngine(new SelectorEngine());

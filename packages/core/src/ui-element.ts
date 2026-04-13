@@ -1,3 +1,14 @@
+export interface ElementQueryEngine {
+  query(root: UIElement, selector: string): UIElement | null;
+  queryAll(root: UIElement, selector: string): UIElement[];
+}
+
+let defaultEngine: ElementQueryEngine | null = null;
+
+export function setDefaultQueryEngine(engine: ElementQueryEngine): void {
+  defaultEngine = engine;
+}
+
 export class UIElement {
   readonly tag: string;
   readonly attributes: Record<string, string>;
@@ -17,7 +28,7 @@ export class UIElement {
   }
 
   get id(): string | undefined {
-    return this.attributes['id'] ?? this.attributes['name'];
+    return this.attributes['name'] ?? this.attributes['id'];
   }
 
   get text(): string | undefined {
@@ -49,6 +60,16 @@ export class UIElement {
     return this.attributes[name];
   }
 
+  $(selector: string): UIElement | null {
+    if (!defaultEngine) throw new Error('No query engine configured. Import @uncle-jesse/core to initialize.');
+    return defaultEngine.query(this, selector);
+  }
+
+  $$(selector: string): UIElement[] {
+    if (!defaultEngine) throw new Error('No query engine configured. Import @uncle-jesse/core to initialize.');
+    return defaultEngine.queryAll(this, selector);
+  }
+
   findAll(predicate: (el: UIElement) => boolean): UIElement[] {
     const results: UIElement[] = [];
     if (predicate(this)) results.push(this);
@@ -65,5 +86,20 @@ export class UIElement {
       if (found) return found;
     }
     return null;
+  }
+
+  toString(depth = 0): string {
+    const indent = '  '.repeat(depth);
+    const attrs = Object.entries(this.attributes)
+      .map(([k, v]) => `${k}="${v}"`)
+      .join(' ');
+    const opening = attrs ? `${this.tag} ${attrs}` : this.tag;
+
+    if (this.children.length === 0) {
+      return `${indent}<${opening} />`;
+    }
+
+    const childStr = this.children.map((c) => c.toString(depth + 1)).join('\n');
+    return `${indent}<${opening}>\n${childStr}\n${indent}</${this.tag}>`;
   }
 }
