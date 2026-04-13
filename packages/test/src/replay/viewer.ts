@@ -1,19 +1,5 @@
 import type { ReplayTimeline, ReplayNode } from './types.js';
 
-function renderTree(node: ReplayNode, depth: number): string {
-  const indent = '  '.repeat(depth);
-  const focusClass = node.focused ? ' class="focused"' : '';
-  const id = node.id ? ` <span class="id">#${escapeHtml(node.id)}</span>` : '';
-  const tag = `<span class="tag">${escapeHtml(node.tag)}</span>`;
-
-  if (node.children.length === 0) {
-    return `${indent}<div${focusClass}>${tag}${id}</div>`;
-  }
-
-  const children = node.children.map((c) => renderTree(c, depth + 1)).join('\n');
-  return `${indent}<div${focusClass}>${tag}${id}\n${children}\n${indent}</div>`;
-}
-
 function escapeHtml(str: string): string {
   return str
     .replace(/&/g, '&amp;')
@@ -23,7 +9,13 @@ function escapeHtml(str: string): string {
 }
 
 export function generateReplayHtml(timeline: ReplayTimeline): string {
-  const framesJson = JSON.stringify(timeline.frames);
+  const hasScreenshots = timeline.frames.some((f) => f.screenshot);
+
+  // Strip screenshots from the inlined JSON to keep the script block small.
+  // Store them separately as a base64 array.
+  const framesForJson = timeline.frames.map(({ screenshot, ...rest }) => rest);
+  const framesJson = JSON.stringify(framesForJson);
+  const screenshotsJson = JSON.stringify(timeline.frames.map((f) => f.screenshot ?? null));
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -47,9 +39,15 @@ export function generateReplayHtml(timeline: ReplayTimeline): string {
   input[type=range] { width: 100%; accent-color: #e94560; }
   .step-label { font-size: 13px; min-width: 80px; }
 
-  .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .panel { background: #16213e; border-radius: 4px; padding: 16px; overflow: auto; max-height: 70vh; }
+  .main { display: flex; gap: 16px; }
+  .left { flex: 1; min-width: 0; }
+  .right { width: 340px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; }
+
+  .panel { background: #16213e; border-radius: 4px; padding: 16px; overflow: auto; }
   .panel h2 { font-size: 13px; color: #a0a0a0; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 6px; }
+
+  .screenshot-panel img { width: 100%; border-radius: 2px; display: block; }
+  .screenshot-panel .no-screenshot { color: #555; font-size: 12px; }
 
   .info-row { display: flex; gap: 16px; margin-bottom: 6px; font-size: 13px; }
   .info-row .label { color: #888; min-width: 80px; }
@@ -57,14 +55,16 @@ export function generateReplayHtml(timeline: ReplayTimeline): string {
   .info-row .value.pass { color: #90ee90; }
   .info-row .value.fail { color: #ee9090; }
 
+  .tree { max-height: 50vh; overflow: auto; }
   .tree div { padding: 1px 0 1px 16px; border-left: 1px solid #333; font-size: 12px; line-height: 1.6; }
   .tree .focused { background: #2a1a3e; border-left-color: #e94560; }
   .tree .focused > .tag { color: #e94560; font-weight: bold; }
   .tree .tag { color: #7ec8e3; }
   .tree .id { color: #c8a87e; }
 
-  @media (max-width: 700px) {
-    .panels { grid-template-columns: 1fr; }
+  @media (max-width: 800px) {
+    .main { flex-direction: column; }
+    .right { width: 100%; }
   }
 </style>
 </head>
@@ -83,40 +83,51 @@ export function generateReplayHtml(timeline: ReplayTimeline): string {
   <span class="step-label" id="stepLabel">Step 1/${timeline.frames.length}</span>
 </div>
 
-<div class="panels">
-  <div class="panel">
-    <h2>Step Details</h2>
-    <div id="details"></div>
+<div class="main">
+  <div class="left">
+    <div class="panel screenshot-panel">
+      <h2>Screenshot</h2>
+      <div id="screenshot"></div>
+    </div>
   </div>
-  <div class="panel">
-    <h2>UI Tree</h2>
-    <div id="tree" class="tree"></div>
+  <div class="right">
+    <div class="panel">
+      <h2>Step Details</h2>
+      <div id="details"></div>
+    </div>
+    <div class="panel">
+      <h2>UI Tree</h2>
+      <div id="tree" class="tree"></div>
+    </div>
   </div>
 </div>
 
 <script>
-const frames = ${framesJson};
-const slider = document.getElementById('slider');
-const stepLabel = document.getElementById('stepLabel');
-const details = document.getElementById('details');
-const tree = document.getElementById('tree');
-const prevBtn = document.getElementById('prev');
-const nextBtn = document.getElementById('next');
+var frames = ${framesJson};
+var screenshots = ${screenshotsJson};
+var slider = document.getElementById('slider');
+var stepLabel = document.getElementById('stepLabel');
+var details = document.getElementById('details');
+var tree = document.getElementById('tree');
+var screenshotEl = document.getElementById('screenshot');
+var prevBtn = document.getElementById('prev');
+var nextBtn = document.getElementById('next');
 
 function renderNode(node, depth) {
-  const focusClass = node.focused ? ' class="focused"' : '';
-  const id = node.id ? ' <span class="id">#' + node.id + '</span>' : '';
-  const tag = '<span class="tag">' + node.tag + '</span>';
-  let html = '<div' + focusClass + '>' + tag + id;
-  for (const child of node.children) {
-    html += renderNode(child, depth + 1);
+  var focusClass = node.focused ? ' class="focused"' : '';
+  var id = node.id ? ' <span class="id">#' + node.id + '</span>' : '';
+  var tag = '<span class="tag">' + node.tag + '</span>';
+  var html = '<div' + focusClass + '>' + tag + id;
+  for (var i = 0; i < node.children.length; i++) {
+    html += renderNode(node.children[i], depth + 1);
   }
   html += '</div>';
   return html;
 }
 
 function showFrame(idx) {
-  const f = frames[idx];
+  var f = frames[idx];
+  var ss = screenshots[idx];
   stepLabel.textContent = 'Step ' + f.step + '/' + frames.length;
   slider.value = idx;
   prevBtn.disabled = idx === 0;
@@ -129,14 +140,20 @@ function showFrame(idx) {
     '<div class="info-row"><span class="label">Result</span><span class="value ' + (f.passed ? 'pass' : 'fail') + '">' + (f.passed ? 'PASS' : 'FAIL') + '</span></div>' +
     '<div class="info-row"><span class="label">Time</span><span class="value">' + f.timestamp + 'ms</span></div>';
 
+  if (ss) {
+    screenshotEl.innerHTML = '<img src="data:image/png;base64,' + ss + '" alt="Step ' + f.step + ' screenshot">';
+  } else {
+    screenshotEl.innerHTML = '<span class="no-screenshot">No screenshot available</span>';
+  }
+
   tree.innerHTML = renderNode(f.uiTree, 0);
 }
 
-slider.addEventListener('input', () => showFrame(Number(slider.value)));
-prevBtn.addEventListener('click', () => { if (slider.value > 0) showFrame(Number(slider.value) - 1); });
-nextBtn.addEventListener('click', () => { if (slider.value < frames.length - 1) showFrame(Number(slider.value) + 1); });
+slider.addEventListener('input', function() { showFrame(Number(slider.value)); });
+prevBtn.addEventListener('click', function() { if (slider.value > 0) showFrame(Number(slider.value) - 1); });
+nextBtn.addEventListener('click', function() { if (slider.value < frames.length - 1) showFrame(Number(slider.value) + 1); });
 
-document.addEventListener('keydown', (e) => {
+document.addEventListener('keydown', function(e) {
   if (e.key === 'ArrowLeft') prevBtn.click();
   if (e.key === 'ArrowRight') nextBtn.click();
 });

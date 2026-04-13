@@ -12,6 +12,11 @@
       "types": "./dist/vitest-plugin.d.ts",
       "import": "./dist/vitest-plugin.js",
       "require": "./dist/vitest-plugin.cjs"
+    },
+    "./replay": {
+      "types": "./dist/replay.d.ts",
+      "import": "./dist/replay.js",
+      "require": "./dist/replay.cjs"
     }
   },
   "main": "./dist/index.cjs",

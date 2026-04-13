@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ['src/index.ts', 'src/vitest-plugin.ts'],
+  entry: ['src/index.ts', 'src/vitest-plugin.ts', 'src/replay.ts'],
   format: ['esm', 'cjs'],
   dts: true,
   splitting: false,

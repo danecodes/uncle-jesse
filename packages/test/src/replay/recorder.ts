@@ -28,6 +28,7 @@ export class ReplayRecorder {
     actualFocusId: string | undefined,
     passed: boolean,
     uiTree: UIElement,
+    screenshot?: Buffer,
   ): void {
     this.frames.push({
       step,
@@ -37,6 +38,7 @@ export class ReplayRecorder {
       passed,
       timestamp: Date.now() - this.startTime,
       uiTree: elementToReplayNode(uiTree),
+      screenshot: screenshot ? screenshot.toString('base64') : undefined,
     });
   }
 

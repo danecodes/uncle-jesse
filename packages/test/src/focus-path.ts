@@ -82,6 +82,12 @@ class FocusPathBuilder {
 
       if (recorder) {
         const tree = await this.device.getUITree();
+        let screenshot: Buffer | undefined;
+        try {
+          screenshot = await this.device.screenshot();
+        } catch {
+          // screenshot not available (e.g. dev mode off)
+        }
         recorder.recordStep(
           i + 1,
           step.key,
@@ -89,6 +95,7 @@ class FocusPathBuilder {
           focusedId,
           passed,
           tree,
+          screenshot,
         );
       }
     }

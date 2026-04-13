@@ -6,6 +6,7 @@ export interface ReplayFrame {
   passed: boolean;
   timestamp: number;
   uiTree: ReplayNode;
+  screenshot?: string; // base64-encoded PNG
 }
 
 export interface ReplayNode {
