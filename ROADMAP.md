@@ -1,22 +1,22 @@
 # Roadmap
 
-## Phase 1.5 — Visual Replay Debugger
-- Record focusPath steps as JSON timeline (UI tree snapshot + focused element + key + timestamp per step)
-- HTML viewer for scrubbing through test runs
-- Integrate into failure output: `View replay: file://test-results/hero-nav-replay.html`
+Phase 1 (Roku foundation) and Phase 1.5 (visual replay debugger) are complete.
 
-## Phase 2 — WebOS Adapter
-- `@uncle-jesse/webos` — SSAP WebSocket + Chrome DevTools Protocol
-- Headless mode for WebOS apps (Chromium, no physical TV)
-- Cross-platform examples, `onPlatform()` blocks
+## Phase 2 - WebOS Adapter
 
-## Phase 3 — Device Dashboard
-- `@uncle-jesse/dashboard` — local web UI via `uncle-jesse dashboard`
-- Device fleet grid: model, firmware, IP, online/offline, app versions
-- Test run history: pass/fail per device, failure screenshots
+- `@uncle-jesse/webos` package using SSAP WebSocket + Chrome DevTools Protocol
+- Headless mode for WebOS apps via Chromium (no physical TV needed)
+- Cross-platform test helpers and `onPlatform()` blocks
 
-## Phase 4 — Polish
-- Screenshot comparison / visual regression
+## Phase 3 - Device Dashboard
+
+- `@uncle-jesse/dashboard` local web UI, launched via `uncle-jesse dashboard`
+- Fleet overview: model, firmware, IP, online/offline status, app versions
+- Test run history with pass/fail per device and failure screenshots
+
+## Phase 4 - Polish
+
+- Screenshot comparison and visual regression
 - Video recording of test runs
 - Documentation site
 - Additional reporters (JSON, GitHub Actions annotations)

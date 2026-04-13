@@ -1,20 +1,8 @@
 # Uncle Jesse
 
-E2E testing framework for smart TVs. Roku-first, TypeScript, off-device automation over HTTP.
+E2E testing framework for smart TVs. TypeScript, off-device, over HTTP. Roku support ships first, with other platforms planned.
 
-**Rooibos tests your code. Uncle Jesse tests your app.**
-
-Rooibos and Rocha are BrightScript unit testing frameworks that run on the device. Uncle Jesse is E2E automation from outside the device — TypeScript, over HTTP, no Appium, no WebdriverIO, no Java.
-
-## Why
-
-There is no open-source E2E testing framework for TV apps. The options today:
-
-1. **Commercial platforms** (Suitest, TV Labs, Witbe) — enterprise pricing, proprietary hardware
-2. **Appium stack** — 5-layer middleware (Tests > WebdriverIO > Appium > appium-roku-driver > ECP). Requires Java runtime, Selenium Grid, flaky session management
-3. **Abandoned repos** — single-digit GitHub stars, no maintenance
-
-The key insight: the Appium drivers are just calling ECP under the hood. Uncle Jesse calls it directly.
+Uncle Jesse talks directly to the Roku External Control Protocol (ECP) on port 8060. No Appium, no WebdriverIO, no Selenium Grid, no Java runtime. Your tests run in Node and send HTTP requests to the device.
 
 ## Install
 
@@ -98,9 +86,9 @@ npx uncle-jesse test
 npx vitest run
 ```
 
-## focusPath()
+## focusPath
 
-The killer feature. A chainable builder for testing D-pad spatial navigation that collects ALL failures instead of aborting on the first one:
+A chainable builder for verifying D-pad spatial navigation. It runs every step and collects all failures instead of bailing on the first one, so you can see the full scope of a broken nav flow at once.
 
 ```typescript
 import { test, focusPath } from '@uncle-jesse/test';
@@ -118,16 +106,18 @@ test('hero carousel navigation', async ({ tv }) => {
 });
 ```
 
-When steps fail, you get the full picture:
+When steps fail, the output tells you exactly what happened:
 
 ```
 Step 3: After pressing RIGHT, expected focus on #heroItem2 but found focus on #heroItem1
 Step 7: After pressing DOWN, expected focus on #categoryRow1 but found focus on <nothing>
 ```
 
+Pass `{ record: true }` to capture a visual replay of each step (see [Visual Replay Debugger](#visual-replay-debugger)).
+
 ## Custom Assertions
 
-Uncle Jesse extends vitest's `expect` with TV-specific matchers:
+Extends vitest's `expect` with matchers for TV UI elements:
 
 ```typescript
 expect(element).toBeFocused();
@@ -139,7 +129,7 @@ expect(element).toHaveAttribute('opacity', '1.0');
 
 ## Page Object Model
 
-Encapsulate screen-specific selectors in reusable classes:
+Wrap screen-specific selectors and actions in classes that extend `TVPage`:
 
 ```typescript
 import { TVPage } from '@uncle-jesse/test';
@@ -161,15 +151,30 @@ test('browse and select', async ({ tv }) => {
 });
 ```
 
+## Visual Replay Debugger
+
+focusPath can record a timeline of UI tree snapshots at each step. The output is a self-contained HTML file you can scrub through like a video, showing which element had focus at each step and whether it matched the expectation.
+
+```typescript
+const result = await focusPath(tv, { record: true, testName: 'hero nav' })
+  .start('#heroItem0')
+  .press('right').expectFocus('#heroItem1')
+  .verify();
+
+if (result.replay) {
+  const { saveReplay } = await import('@uncle-jesse/test');
+  await saveReplay(result.replay, './test-results');
+  // Writes test-results/hero-nav-replay.html
+}
+```
+
 ## Device Discovery
 
-Find Roku devices on your network:
+Find Roku devices on your local network:
 
 ```bash
 npx uncle-jesse discover
 ```
-
-Or programmatically:
 
 ```typescript
 import { RokuDiscovery } from '@uncle-jesse/roku';
@@ -178,7 +183,9 @@ const discovery = new RokuDiscovery();
 const devices = await discovery.findAll({ timeout: 5000 });
 ```
 
-## CI/CD (GitHub Actions)
+## CI (GitHub Actions)
+
+Unit tests (selector engine, parsers, matchers) run on any CI runner. Device tests need a self-hosted runner on the same network as the Roku.
 
 ```yaml
 name: TV Tests
@@ -227,17 +234,21 @@ ECP HTTP API         port 8060 on the Roku device
 | Package | Description |
 |---------|-------------|
 | `@uncle-jesse/core` | Platform-agnostic interfaces, UIElement, SelectorEngine, config |
-| `@uncle-jesse/roku` | Roku adapter wrapping `@danecodes/roku-ecp` |
-| `@uncle-jesse/test` | focusPath(), assertions, vitest plugin, TVPage |
-| `uncle-jesse` | CLI (`test`, `discover`) and reporters |
+| `@uncle-jesse/roku` | Roku adapter wrapping [@danecodes/roku-ecp](https://github.com/danecodes/roku-ecp) |
+| `@uncle-jesse/test` | focusPath, assertions, vitest plugin, TVPage |
+| `uncle-jesse` | CLI and reporters (console, JUnit XML) |
 
 ## Examples
 
-See the [`examples/`](./examples) directory:
+The [`examples/`](./examples) directory has three working test suites that run against a bundled Roku sample app:
 
-- **roku-basic** — smoke tests: launch, navigate, select, back
-- **roku-focus-path** — focusPath() showcase with failure reporting demo
-- **roku-page-objects** — Page Object Model pattern
+- `roku-basic` - launch, navigate, select items, back navigation
+- `roku-focus-path` - focusPath builder, failure reporting
+- `roku-page-objects` - page object pattern with GridScreen and DetailsScreen
+
+## Roadmap
+
+See [ROADMAP.md](./ROADMAP.md) for planned work including WebOS support, a device dashboard, and visual regression testing.
 
 ## License
 
