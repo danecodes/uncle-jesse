@@ -2,12 +2,12 @@ import { TVPage } from '@uncle-jesse/test';
 
 export class DetailsScreen extends TVPage {
   async isVisible(): Promise<boolean> {
-    const el = await this.$('DetailsScreen[visible="true"]');
+    const el = await this.$('DetailsScreen[focused="true"]');
     return el !== null;
   }
 
   async waitForLoad(): Promise<void> {
-    await this.waitForElement('DetailsScreen[visible="true"]');
+    await this.waitForElement('DetailsScreen[focused="true"]');
   }
 
   async getButtons() {

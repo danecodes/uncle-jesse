@@ -3,10 +3,6 @@ import { expect } from 'vitest';
 import { GridScreen } from './pages/grid-screen.js';
 import { DetailsScreen } from './pages/details-screen.js';
 
-// Page Object Model pattern: encapsulate screen-specific selectors
-// and actions in reusable classes. Tests read like user stories
-// instead of raw selector queries.
-
 test('browse grid and view item details', async ({ tv }) => {
   await tv.launchApp('dev');
 
@@ -16,7 +12,7 @@ test('browse grid and view item details', async ({ tv }) => {
   const rowList = await grid.getRowList();
   expect(rowList).toExist();
 
-  // Navigate to second item and select
+  // Navigate and select
   await grid.navigateRight();
   await grid.selectCurrentItem();
 
@@ -43,8 +39,9 @@ test('navigate details buttons and go back', async ({ tv }) => {
   await details.navigateButtons('down');
   await details.navigateButtons('down');
 
-  // Go back to grid
+  // Go back to grid — wait for GridScreen to regain focus
   await details.goBack();
+  await tv.waitForElement('RowList');
 
   expect(await grid.isVisible()).toBe(true);
 });

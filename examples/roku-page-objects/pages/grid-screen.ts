@@ -2,8 +2,8 @@ import { TVPage } from '@uncle-jesse/test';
 
 export class GridScreen extends TVPage {
   async isVisible(): Promise<boolean> {
-    const el = await this.$('GridScreen[visible="true"]');
-    return el !== null;
+    const el = await this.$('GridScreen');
+    return el !== null && el.getAttribute('visible') !== 'false';
   }
 
   async waitForLoad(): Promise<void> {

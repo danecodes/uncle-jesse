@@ -147,9 +147,13 @@ export class RokuAdapter implements TVDevice {
   }
 
   async getFocusedElement(): Promise<UIElement | null> {
+    // Roku sets focused="true" on the entire focus chain (root to leaf).
+    // We want the deepest focused node — the actual leaf with user focus.
     const raw = await this.getRawUITree();
-    const focused = findFocused(raw);
-    return focused ? this.uiNodeToElement(focused) : null;
+    const allFocused = findElements(raw, '[focused="true"]');
+    if (allFocused.length === 0) return null;
+    const deepest = allFocused[allFocused.length - 1];
+    return this.uiNodeToElement(deepest);
   }
 
   async waitForElement(selector: string, options?: WaitOptions): Promise<UIElement> {
