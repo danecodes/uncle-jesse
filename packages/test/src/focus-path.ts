@@ -5,12 +5,12 @@ interface FocusPathStep {
   expectedSelector: string;
 }
 
-interface FocusPathResult {
+export interface FocusPathResult {
   passed: boolean;
   failures: FocusPathFailure[];
 }
 
-interface FocusPathFailure {
+export interface FocusPathFailure {
   step: number;
   key: RemoteKey;
   expectedSelector: string;
