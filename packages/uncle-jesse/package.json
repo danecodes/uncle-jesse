@@ -1,0 +1,36 @@
+{
+  "name": "uncle-jesse",
+  "version": "0.0.1",
+  "type": "module",
+  "bin": {
+    "uncle-jesse": "./bin/uncle-jesse.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "bin"],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@uncle-jesse/core": "workspace:*",
+    "@uncle-jesse/roku": "workspace:*",
+    "@uncle-jesse/test": "workspace:*",
+    "commander": "^13.0.0",
+    "chalk": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}
