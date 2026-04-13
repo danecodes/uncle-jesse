@@ -1,4 +1,6 @@
 import { Command } from 'commander';
+import { runTests } from './commands/test.js';
+import { runDiscover } from './commands/discover.js';
 
 export function createCli(): Command {
   const program = new Command();
@@ -11,19 +13,16 @@ export function createCli(): Command {
   program
     .command('test')
     .description('Run TV E2E tests')
-    .option('-c, --config <path>', 'Path to config file')
+    .option('-c, --config <path>', 'Path to vitest config file')
     .option('--reporter <type>', 'Reporter: console, junit', 'console')
-    .action(async (options) => {
-      console.log('Running tests...', options);
-    });
+    .option('-w, --watch', 'Run in watch mode')
+    .action(runTests);
 
   program
     .command('discover')
     .description('Discover TV devices on the network')
     .option('--timeout <ms>', 'Discovery timeout in ms', '5000')
-    .action(async (options) => {
-      console.log('Discovering devices...', options);
-    });
+    .action(runDiscover);
 
   return program;
 }
