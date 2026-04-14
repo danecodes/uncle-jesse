@@ -5,14 +5,14 @@ sub Main(args as Dynamic)
 
     scene = screen.CreateScene("MainScene")
 
-    if args.contentId <> invalid and args.contentId <> ""
-        scene.deepLinkContentId = args.contentId
-    end if
+    screen.show()
+
     if args.mediaType <> invalid and args.mediaType <> ""
         scene.deepLinkMediaType = args.mediaType
     end if
-
-    screen.show()
+    if args.contentId <> invalid and args.contentId <> ""
+        scene.deepLinkContentId = args.contentId
+    end if
 
     while true
         msg = wait(0, port)

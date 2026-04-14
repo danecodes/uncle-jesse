@@ -1,4 +1,4 @@
-import { EcpClient, type KeyName, parseUiXml, findElement, findElements, findFocused, type UiNode } from '@danecodes/roku-ecp';
+import { EcpClient, type KeyName, parseUiXml, findElement, findElements, findFocused, type UiNode, waitForApp } from '@danecodes/roku-ecp';
 import {
   type TVDevice,
   type Platform,
@@ -85,11 +85,20 @@ export class RokuAdapter implements TVDevice {
   }
 
   async home(): Promise<void> {
+    const appBefore = await this.client.queryActiveApp();
     await this.press('home');
+    // Wait until the active app changes (we've left the current app)
+    const start = Date.now();
+    while (Date.now() - start < 10000) {
+      const app = await this.client.queryActiveApp();
+      if (app.id !== appBefore.id) return;
+      await new Promise((r) => setTimeout(r, 200));
+    }
   }
 
   async launchApp(appId: string, params?: Record<string, string>): Promise<void> {
     await this.client.launch(appId, params);
+    await waitForApp(this.client, appId, { timeout: 15000 });
   }
 
   async closeApp(): Promise<void> {
@@ -98,6 +107,7 @@ export class RokuAdapter implements TVDevice {
 
   async deepLink(channelId: string, contentId: string, mediaType?: string): Promise<void> {
     await this.client.deepLink(channelId, contentId, mediaType);
+    await waitForApp(this.client, channelId, { timeout: 15000 });
   }
 
   async getActiveApp(): Promise<AppInfo> {
