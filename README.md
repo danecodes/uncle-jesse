@@ -1,6 +1,6 @@
 # Uncle Jesse
 
-E2E testing framework for smart TVs. TypeScript, off-device, over HTTP. Roku support ships first, with other platforms planned.
+E2E testing framework for smart TVs. TypeScript, off-device, over HTTP. Roku first, with other platforms planned.
 
 Uncle Jesse talks directly to the Roku External Control Protocol (ECP) on port 8060. No Appium, no WebdriverIO, no Selenium Grid, no Java runtime. Your tests run in Node and send HTTP requests to the device.
 
