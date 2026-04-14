@@ -129,13 +129,15 @@ class FocusPathBuilder {
       }
 
       if (recorder) {
-        const tree = await this.device.getUITree();
+        // Capture screenshot immediately after focus stabilizes,
+        // before any more time passes. Then grab the tree.
         let screenshot: Buffer | undefined;
         try {
           screenshot = await this.device.screenshot();
         } catch {
           // screenshot not available
         }
+        const tree = await this.device.getUITree();
         recorder.recordStep(
           i + 1,
           step.key,
