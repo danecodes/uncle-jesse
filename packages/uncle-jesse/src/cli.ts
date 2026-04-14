@@ -27,8 +27,8 @@ export function createCli(): Command {
 
   program
     .command('sideload')
-    .description('Sideload a channel zip to a Roku device')
-    .argument('<zip>', 'Path to the channel .zip file')
+    .description('Sideload a channel to a Roku device')
+    .argument('<path>', 'Path to a .zip file or channel directory')
     .option('--ip <address>', 'Device IP (or set UNCLE_JESSE_ROKU_IP)')
     .option('--password <password>', 'Dev password (default: rokudev)')
     .action(runSideload);

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="NavTab" extends="Group">
+    <interface>
+        <field id="text" type="string" onChange="onTextChange" />
+        <field id="tabId" type="string" />
+        <field id="selected" type="boolean" value="false" onChange="onSelectedChange" />
+    </interface>
+
+    <script type="text/brightscript" uri="pkg:/components/widgets/NavTab.brs" />
+
+    <children>
+        <Rectangle
+            id="tabBackground"
+            width="160"
+            height="72"
+            color="0x00000000" />
+
+        <Label
+            id="tabLabel"
+            translation="[20, 24]"
+            font="font:SmallBoldSystemFont"
+            color="0xaaaaaaff" />
+    </children>
+</component>

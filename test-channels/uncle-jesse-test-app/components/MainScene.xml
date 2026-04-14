@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="MainScene" extends="Scene">
+    <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
+
+    <children>
+        <NavBar
+            id="navBar"
+            translation="[0, 0]" />
+
+        <HomeScreen
+            id="homeScreen"
+            visible="true"
+            translation="[0, 72]" />
+
+        <SearchScreen
+            id="searchScreen"
+            visible="false"
+            translation="[0, 72]" />
+
+        <SettingsScreen
+            id="settingsScreen"
+            visible="false"
+            translation="[0, 72]" />
+
+        <DetailsScreen
+            id="detailsScreen"
+            visible="false"
+            translation="[0, 72]" />
+
+        <VideoScreen
+            id="videoScreen"
+            visible="false"
+            translation="[0, 0]" />
+    </children>
+</component>

@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@danecodes/roku-ecp':
-        specifier: 0.3.3
-        version: 0.3.3
+        specifier: 0.4.0
+        version: 0.4.0
     devDependencies:
       '@changesets/cli':
         specifier: ^2.30.0
@@ -76,8 +76,8 @@ importers:
   packages/roku:
     dependencies:
       '@danecodes/roku-ecp':
-        specifier: ^0.3.3
-        version: 0.3.3
+        specifier: ^0.4.0
+        version: 0.4.0
       '@danecodes/uncle-jesse-core':
         specifier: workspace:*
         version: link:../core
@@ -94,8 +94,8 @@ importers:
   packages/uncle-jesse:
     dependencies:
       '@danecodes/roku-ecp':
-        specifier: 0.3.3
-        version: 0.3.3
+        specifier: 0.4.0
+        version: 0.4.0
       '@danecodes/uncle-jesse-core':
         specifier: workspace:*
         version: link:../core
@@ -181,8 +181,8 @@ packages:
   '@changesets/write@0.4.0':
     resolution: {integrity: sha512-CdTLvIOPiCNuH71pyDu3rA+Q0n65cmAbXnwWH84rKGiFumFzkmHNT8KHTMEchcxN+Kl8I54xGUhJ7l3E7X396Q==}
 
-  '@danecodes/roku-ecp@0.3.3':
-    resolution: {integrity: sha512-/LDMeVtTJm02++7b5YN6HiDWcHQj1SMvocgttrNUQInyA4n9d+zv/F37dQ+Abg09E1nj0UcJWK2F1sVso817aA==}
+  '@danecodes/roku-ecp@0.4.0':
+    resolution: {integrity: sha512-gYi+B++uj7EqzmOH3zGSCN10XRyRrcaDcrePjsJ0lM5BdctMnyOUDSHilJ9ajLyGbLZ5C0ggtVHPt/hiqKMt6A==}
     engines: {node: '>=18'}
 
   '@emnapi/core@1.9.2':
@@ -1651,7 +1651,7 @@ snapshots:
       human-id: 4.1.3
       prettier: 2.8.8
 
-  '@danecodes/roku-ecp@0.3.3':
+  '@danecodes/roku-ecp@0.4.0':
     dependencies:
       fast-xml-parser: 5.5.11
 

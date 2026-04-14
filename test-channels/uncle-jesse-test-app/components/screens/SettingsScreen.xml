@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="SettingsScreen" extends="Group" initialFocus="settingsList">
+    <interface />
+
+    <script type="text/brightscript" uri="pkg:/components/screens/SettingsScreen.brs" />
+
+    <children>
+        <Label
+            id="screenTitle"
+            text="Settings"
+            translation="[40, 20]"
+            font="font:LargeBoldSystemFont"
+            color="0xffffffff" />
+
+        <LabelList
+            id="settingsList"
+            translation="[40, 80]"
+            itemSize="[600, 48]"
+            numRows="5"
+            color="0xffffffff"
+            focusedColor="0x111122ff"
+            vertFocusAnimationStyle="floatingFocus" />
+
+        <Label
+            id="statusLabel"
+            translation="[40, 380]"
+            font="font:SmallSystemFont"
+            color="0x888888ff"
+            text="" />
+    </children>
+</component>

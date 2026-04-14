@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="HomeScreen" extends="Group" initialFocus="contentGrid">
+    <interface>
+        <field id="itemSelected" type="node" alwaysNotify="true" />
+        <field id="selectedItem" type="node" />
+    </interface>
+
+    <script type="text/brightscript" uri="pkg:/components/screens/HomeScreen.brs" />
+
+    <children>
+        <Label
+            id="screenTitle"
+            text="Home"
+            translation="[40, 20]"
+            font="font:LargeBoldSystemFont"
+            color="0xffffffff" />
+
+        <RowList
+            id="contentGrid"
+            translation="[0, 80]"
+            itemSize="[1280, 200]"
+            numRows="3"
+            itemSpacing="[0, 10]"
+            focusBitmapBlendColor="0x333366ff"
+            rowItemSize="[[230, 130]]"
+            rowItemSpacing="[[10, 0]]"
+            showRowLabel="true"
+            showRowCounter="true"
+            rowLabelOffset="[[40, 5]]" />
+    </children>
+</component>

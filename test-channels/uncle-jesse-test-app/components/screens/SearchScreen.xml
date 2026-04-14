@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="SearchScreen" extends="Group" initialFocus="searchInput">
+    <interface />
+
+    <script type="text/brightscript" uri="pkg:/components/screens/SearchScreen.brs" />
+
+    <children>
+        <Label
+            id="screenTitle"
+            text="Search"
+            translation="[40, 20]"
+            font="font:LargeBoldSystemFont"
+            color="0xffffffff" />
+
+        <Keyboard
+            id="searchInput"
+            translation="[40, 80]"
+            textEditBox="[520, 48]" />
+
+        <Label
+            id="resultsLabel"
+            translation="[600, 80]"
+            font="font:SmallSystemFont"
+            color="0xaaaaaaff"
+            text="Type to search" />
+
+        <LabelList
+            id="resultsList"
+            translation="[600, 120]"
+            itemSize="[600, 48]"
+            numRows="8"
+            visible="false"
+            color="0xffffffff"
+            focusedColor="0x111122ff" />
+    </children>
+</component>

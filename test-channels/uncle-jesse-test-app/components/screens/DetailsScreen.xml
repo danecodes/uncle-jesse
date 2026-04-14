@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="DetailsScreen" extends="Group" initialFocus="actionButtons">
+    <interface>
+        <field id="content" type="node" onChange="onContentChange" />
+        <field id="playSelected" type="boolean" alwaysNotify="true" />
+    </interface>
+
+    <script type="text/brightscript" uri="pkg:/components/screens/DetailsScreen.brs" />
+
+    <children>
+        <Rectangle
+            id="background"
+            width="1280"
+            height="648"
+            color="0x111122ff" />
+
+        <Poster
+            id="poster"
+            translation="[40, 40]"
+            width="400"
+            height="225" />
+
+        <Label
+            id="titleLabel"
+            translation="[480, 40]"
+            font="font:LargeBoldSystemFont"
+            color="0xffffffff" />
+
+        <Label
+            id="descriptionLabel"
+            translation="[480, 90]"
+            width="740"
+            wrap="true"
+            maxLines="3"
+            font="font:SmallSystemFont"
+            color="0xccccccff" />
+
+        <Label
+            id="yearLabel"
+            translation="[480, 170]"
+            font="font:SmallSystemFont"
+            color="0x888888ff" />
+
+        <LabelList
+            id="actionButtons"
+            translation="[480, 220]"
+            itemSize="[300, 48]"
+            numRows="3"
+            color="0xffffffff"
+            focusedColor="0x111122ff"
+            vertFocusAnimationStyle="floatingFocus" />
+    </children>
+</component>

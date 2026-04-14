@@ -15,10 +15,6 @@ export async function runSideload(zipPath: string, options: SideloadOptions): Pr
     process.exit(1);
   }
 
-  if (!resolved.endsWith('.zip')) {
-    console.error(chalk.red('Sideload requires a .zip file'));
-    process.exit(1);
-  }
 
   const ip = options.ip ?? process.env.UNCLE_JESSE_ROKU_IP;
   if (!ip) {

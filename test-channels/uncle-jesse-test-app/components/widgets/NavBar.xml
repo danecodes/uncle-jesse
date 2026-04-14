@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="NavBar" extends="Group">
+    <interface>
+        <field id="selectedTab" type="string" alwaysNotify="true" />
+        <field id="selectedIndex" type="integer" value="0" onChange="onIndexChange" />
+    </interface>
+
+    <script type="text/brightscript" uri="pkg:/components/widgets/NavBar.brs" />
+
+    <children>
+        <Rectangle
+            id="navBackground"
+            width="1280"
+            height="72"
+            color="0x1a1a2eff" />
+
+        <LayoutGroup
+            id="tabGroup"
+            translation="[40, 0]"
+            layoutDirection="horiz"
+            itemSpacings="[0]">
+
+            <NavTab id="tabHome" text="Home" tabId="home" />
+            <NavTab id="tabSearch" text="Search" tabId="search" />
+            <NavTab id="tabSettings" text="Settings" tabId="settings" />
+        </LayoutGroup>
+    </children>
+</component>
