@@ -88,8 +88,8 @@ class LiveElement {
   isFocused(): Promise<boolean>;
 
   // Actions
-  select(): Promise<void>;
-  focus(): Promise<void>;
+  select(options?: { ifNotDisplayedNavigate?: Direction }): Promise<void>;
+  focus(options?: { direction?: Direction; maxAttempts?: number; timeout?: number }): Promise<void>;
 
   // Wait helpers
   waitForDisplayed(options?: WaitOptions): Promise<void>;
@@ -210,6 +210,41 @@ export default defineConfig({
     rokuAppId?: string;
   },
 });
+```
+
+### RegistryState
+
+Builds launch params for the `odc_registry` convention used by apps that support registry injection on launch.
+
+```typescript
+class RegistryState {
+  set(section: string, key: string, value: string): this;
+  merge(other: RegistryData): this;
+  toJSON(): RegistryData;
+  toLaunchParams(options?: { clearRegistry?: boolean }): Record<string, string>;
+
+  static skipOnboarding(): RegistryState;
+  static authenticated(): RegistryState;
+  static from(data: RegistryData): RegistryState;
+}
+```
+
+### DevicePool
+
+Manages a pool of devices for parallel test execution.
+
+```typescript
+class DevicePool {
+  constructor(devices: TVDevice[], options?: { acquireTimeout?: number });
+
+  get size(): number;
+  get freeCount(): number;
+  get busyCount(): number;
+
+  acquire(): Promise<TVDevice>;   // blocks until a device is available
+  release(device: TVDevice): void;
+  drain(): Promise<void>;         // disconnects all devices
+}
 ```
 
 ## @danecodes/uncle-jesse-roku

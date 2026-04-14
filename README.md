@@ -55,7 +55,9 @@ const title = homeScreen.$('Label#screenTitle');
 
 // Actions
 await homeScreen.select();
-await homeScreen.focus();
+await homeScreen.focus();                              // navigates via D-pad until focused
+await homeScreen.focus({ direction: 'down' });         // specify scroll direction
+await settingsBtn.select({ ifNotDisplayedNavigate: 'down' }); // scroll until visible, then select
 
 // State queries
 await homeScreen.isDisplayed();    // true if visible attr is not "false"
@@ -233,6 +235,53 @@ await tv.deepLink('dev', 'content-123', 'movie');
 ```
 
 The adapter waits for the target app to become active before returning.
+
+## Registry State
+
+Inject registry state before launching the app. This lets you skip onboarding flows, set language preferences, or configure any app state that's stored in the Roku registry. Compatible with apps that handle the `odc_registry` launch param convention.
+
+```typescript
+import { RegistryState } from '@danecodes/uncle-jesse-core';
+
+const registry = RegistryState.skipOnboarding();
+const params = registry.toLaunchParams();
+await tv.launchApp('dev', params);
+
+// Or build custom state
+const custom = new RegistryState()
+  .set('CR_ROKU', 'isFirstLaunch', 'false')
+  .set('SETTINGS', 'subtitleLanguage', 'en');
+await tv.launchApp('dev', custom.toLaunchParams());
+```
+
+## Multi-Device Parallel Testing
+
+`DevicePool` manages a pool of devices for parallel test execution. Tests acquire a device from the pool, run against it, and release it when done. If all devices are busy, the next test waits until one becomes available.
+
+```typescript
+import { DevicePool } from '@danecodes/uncle-jesse-core';
+import { RokuAdapter } from '@danecodes/uncle-jesse-roku';
+
+const devices = [
+  new RokuAdapter({ name: 'roku-1', ip: '192.168.1.50' }),
+  new RokuAdapter({ name: 'roku-2', ip: '192.168.1.51' }),
+  new RokuAdapter({ name: 'roku-3', ip: '192.168.1.52' }),
+];
+
+for (const d of devices) await d.connect();
+const pool = new DevicePool(devices, { acquireTimeout: 30000 });
+
+// In each test worker
+const device = await pool.acquire();
+try {
+  // run tests against device
+} finally {
+  pool.release(device);
+}
+
+// When done
+await pool.drain();
+```
 
 ## Architecture
 

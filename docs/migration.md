@@ -131,6 +131,7 @@ beforeEach(async (ctx) => {
 
 // After
 import { RokuAdapter } from '@danecodes/uncle-jesse-roku';
+import { RegistryState } from '@danecodes/uncle-jesse-core';
 
 beforeEach(async () => {
   device = new RokuAdapter({
@@ -141,7 +142,8 @@ beforeEach(async () => {
   await device.connect();
   home = new HomePage(device, null);
   await device.home();
-  await device.launchApp('dev');
+  const registry = RegistryState.skipOnboarding();
+  await device.launchApp('dev', registry.toLaunchParams());
   await home.waitForLoaded();
 });
 
@@ -150,9 +152,34 @@ afterEach(async () => {
 });
 ```
 
+## element.focus() and select()
+
+```typescript
+// Before
+await element.focus();
+await element.select({ ifNotDisplayedNavigate: Direction.DOWN });
+
+// After (same behavior)
+await element.focus();
+await element.focus({ direction: 'down' });
+await element.select({ ifNotDisplayedNavigate: 'down' });
+```
+
+## Multi-device parallel
+
+```typescript
+// Before: Selenium Grid distributes sessions across runners
+
+// After: DevicePool manages device allocation
+import { DevicePool } from '@danecodes/uncle-jesse-core';
+
+const pool = new DevicePool(devices, { acquireTimeout: 30000 });
+const device = await pool.acquire();
+// ... run tests ...
+pool.release(device);
+```
+
 ## What's not yet supported
 
-- Selenium Grid / multi-device parallel execution
-- Registry state injection (onboarding skip, user state)
-- `element.focus()` via ECP (only available through D-pad navigation)
-- `ifNotDisplayedNavigate` option on `select()`
+- Selenium Grid protocol (DevicePool replaces this with a simpler model)
+- `driver.waitUntil()` (use `waitForCondition()` or assertion polling instead)
