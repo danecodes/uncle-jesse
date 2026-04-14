@@ -82,42 +82,64 @@ export class LiveElement {
     const el = await this.resolve();
     if (el?.focused) return;
 
+    // Check if the target's parent container is in the focus chain.
+    // Roku's focus model requires the parent to be focused before
+    // children can receive focus. If the parent isn't focused,
+    // we need to focus it first.
+    const target = await this.resolve();
+    if (target?.parent && !target.parent.focused) {
+      const parentId = target.parent.id ?? target.parent.tag;
+      const parentSelector = target.parent.id
+        ? `#${target.parent.id}`
+        : target.parent.tag;
+      const parentEl = new LiveElement(this.device, parentSelector);
+      const parentResolved = await parentEl.resolve();
+      if (parentResolved && !parentResolved.focused) {
+        await parentEl.focus(options);
+      }
+    }
+
+    // Re-check after parent focus
+    const afterParent = await this.resolve();
+    if (afterParent?.focused) return;
+
     const maxAttempts = options?.maxAttempts ?? 20;
     const timeout = options?.timeout ?? 15000;
     const start = Date.now();
     let lastFocusedId: string | undefined;
 
     for (let i = 0; i < maxAttempts && Date.now() - start < timeout; i++) {
-      const target = await this.resolve();
-      if (!target) {
+      const current = await this.resolve();
+      if (!current) {
         await sleep(200);
         continue;
       }
-      if (target.focused) return;
+      if (current.focused) return;
 
+      // Check if the target is contained within the focused element
+      // or vice versa. Either means we're in the right focus chain.
       const focused = await this.device.getFocusedElement();
       if (!focused) {
         await sleep(200);
         continue;
       }
 
-      const direction = computeDirection(target, focused);
+      const direction = computeDirection(current, focused);
       if (!direction) {
         throw new Error(
-          `Cannot determine direction to navigate from ${describeBounds(focused)} to ${describeBounds(target)}`
+          `Cannot determine direction to navigate from ${describeBounds(focused)} to ${describeBounds(current)}`
         );
       }
 
       await this.device.press(direction);
       await sleep(200);
 
-      // Check if focus actually moved. If it didn't, we're stuck.
+      // Check if focus actually moved
       const newFocused = await this.device.getFocusedElement();
       const newId = newFocused?.id ?? newFocused?.getAttribute('title') ?? newFocused?.tag;
       if (newId === lastFocusedId) {
-        // Focus didn't move, might be at the edge of a list.
-        // Try the other axis before giving up.
-        const altDirection = computeAlternateDirection(target, focused);
+        // Focus didn't move. Try the secondary axis.
+        const altDirection = computeAlternateDirection(current, focused);
         if (altDirection) {
           await this.device.press(altDirection);
           await sleep(200);
