@@ -76,34 +76,56 @@ export class LiveElement {
   }
 
   async focus(options?: {
-    direction?: Direction;
     maxAttempts?: number;
     timeout?: number;
   }): Promise<void> {
     const el = await this.resolve();
     if (el?.focused) return;
 
-    const direction = options?.direction ?? 'down';
-    const maxAttempts = options?.maxAttempts ?? 30;
+    const maxAttempts = options?.maxAttempts ?? 20;
     const timeout = options?.timeout ?? 15000;
     const start = Date.now();
+    let lastFocusedId: string | undefined;
 
     for (let i = 0; i < maxAttempts && Date.now() - start < timeout; i++) {
-      const current = await this.resolve();
-      if (current?.focused) return;
+      const target = await this.resolve();
+      if (!target) {
+        await sleep(200);
+        continue;
+      }
+      if (target.focused) return;
 
-      // If the element exists but isn't focused, try navigating toward it
-      if (current) {
-        await this.device.press(direction);
-        await sleep(150);
+      const focused = await this.device.getFocusedElement();
+      if (!focused) {
+        await sleep(200);
         continue;
       }
 
-      // Element not in tree yet, wait a bit
+      const direction = computeDirection(target, focused);
+      if (!direction) {
+        throw new Error(
+          `Cannot determine direction to navigate from ${describeBounds(focused)} to ${describeBounds(target)}`
+        );
+      }
+
+      await this.device.press(direction);
       await sleep(200);
+
+      // Check if focus actually moved. If it didn't, we're stuck.
+      const newFocused = await this.device.getFocusedElement();
+      const newId = newFocused?.id ?? newFocused?.getAttribute('title') ?? newFocused?.tag;
+      if (newId === lastFocusedId) {
+        // Focus didn't move, might be at the edge of a list.
+        // Try the other axis before giving up.
+        const altDirection = computeAlternateDirection(target, focused);
+        if (altDirection) {
+          await this.device.press(altDirection);
+          await sleep(200);
+        }
+      }
+      lastFocusedId = newId;
     }
 
-    // Final check
     const final = await this.resolve();
     if (final?.focused) return;
 
@@ -344,4 +366,70 @@ export class BasePage<TApp = unknown> {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+interface Rect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+function getBounds(el: { bounds?: Rect; getAttribute(n: string): string | undefined }): Rect | null {
+  if (el.bounds) return el.bounds;
+  const b = el.getAttribute('bounds');
+  if (!b) return null;
+  const match = b.match(/\{(\d+),\s*(\d+),\s*(\d+),\s*(\d+)\}/);
+  if (!match) return null;
+  return { x: Number(match[1]), y: Number(match[2]), width: Number(match[3]), height: Number(match[4]) };
+}
+
+function computeDirection(
+  target: { bounds?: Rect; getAttribute(n: string): string | undefined },
+  current: { bounds?: Rect; getAttribute(n: string): string | undefined },
+): Direction | null {
+  const targetRect = getBounds(target);
+  const currentRect = getBounds(current);
+  if (!targetRect || !currentRect) return 'down'; // fallback if no bounds
+
+  const targetCenterX = targetRect.x + targetRect.width / 2;
+  const targetCenterY = targetRect.y + targetRect.height / 2;
+  const currentCenterX = currentRect.x + currentRect.width / 2;
+  const currentCenterY = currentRect.y + currentRect.height / 2;
+
+  const dx = targetCenterX - currentCenterX;
+  const dy = targetCenterY - currentCenterY;
+
+  // Move along the axis with the greater distance
+  if (Math.abs(dy) >= Math.abs(dx)) {
+    return dy < 0 ? 'up' : 'down';
+  }
+  return dx < 0 ? 'left' : 'right';
+}
+
+function computeAlternateDirection(
+  target: { bounds?: Rect; getAttribute(n: string): string | undefined },
+  current: { bounds?: Rect; getAttribute(n: string): string | undefined },
+): Direction | null {
+  const targetRect = getBounds(target);
+  const currentRect = getBounds(current);
+  if (!targetRect || !currentRect) return null;
+
+  const dx = (targetRect.x + targetRect.width / 2) - (currentRect.x + currentRect.width / 2);
+  const dy = (targetRect.y + targetRect.height / 2) - (currentRect.y + currentRect.height / 2);
+
+  // Return the secondary axis direction
+  if (Math.abs(dy) >= Math.abs(dx)) {
+    if (Math.abs(dx) < 5) return null;
+    return dx < 0 ? 'left' : 'right';
+  }
+  if (Math.abs(dy) < 5) return null;
+  return dy < 0 ? 'up' : 'down';
+}
+
+function describeBounds(el: { id?: string; tag: string; bounds?: Rect; getAttribute(n: string): string | undefined }): string {
+  const name = el.id ?? el.getAttribute('title') ?? el.tag;
+  const rect = getBounds(el);
+  if (rect) return `${name} at (${rect.x},${rect.y})`;
+  return name;
 }
