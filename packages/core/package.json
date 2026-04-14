@@ -32,5 +32,13 @@
   "license": "MIT",
   "dependencies": {
     "cosmiconfig": "^9.0.1"
+  },
+  "peerDependencies": {
+    "@danecodes/roku-odc": ">=0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "@danecodes/roku-odc": {
+      "optional": true
+    }
   }
 }
