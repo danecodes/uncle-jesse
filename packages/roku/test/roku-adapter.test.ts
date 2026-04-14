@@ -4,7 +4,7 @@ import { DeviceConnectionError } from '@danecodes/uncle-jesse-core';
 
 const mockClient = {
   queryDeviceInfo: vi.fn(),
-  queryActiveApp: vi.fn(),
+  queryActiveApp: vi.fn().mockResolvedValue({ id: 'dev', name: 'test' }),
   queryInstalledApps: vi.fn(),
   queryAppUi: vi.fn(),
   takeScreenshot: vi.fn(),
@@ -14,6 +14,7 @@ const mockClient = {
   type: vi.fn(),
   launch: vi.fn(),
   closeApp: vi.fn(),
+  deepLink: vi.fn(),
 };
 
 vi.mock('@danecodes/roku-ecp', () => {
@@ -29,6 +30,7 @@ vi.mock('@danecodes/roku-ecp', () => {
     findElement: vi.fn(),
     findElements: vi.fn(),
     findFocused: vi.fn(),
+    waitForApp: vi.fn().mockResolvedValue({ id: 'dev', name: 'test' }),
   };
 });
 

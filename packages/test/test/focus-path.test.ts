@@ -6,6 +6,12 @@ import { UIElement } from '@danecodes/uncle-jesse-core';
 function mockDevice(focusSequence: (string | undefined)[]): TVDevice {
   let callIdx = 0;
 
+  // press advances to the next focus state
+  const pressHandler = vi.fn(() => {
+    callIdx++;
+    return Promise.resolve();
+  });
+
   return {
     platform: 'roku',
     name: 'test',
@@ -13,7 +19,7 @@ function mockDevice(focusSequence: (string | undefined)[]): TVDevice {
     connect: vi.fn(),
     disconnect: vi.fn(),
     isConnected: vi.fn(() => true),
-    press: vi.fn(),
+    press: pressHandler,
     longPress: vi.fn(),
     type: vi.fn(),
     navigate: vi.fn(),
@@ -24,7 +30,7 @@ function mockDevice(focusSequence: (string | undefined)[]): TVDevice {
     closeApp: vi.fn(),
     getActiveApp: vi.fn(),
     getInstalledApps: vi.fn(),
-    getUITree: vi.fn(),
+    getUITree: vi.fn().mockResolvedValue(new UIElement('Scene', {})),
     $: vi.fn(),
     $$: vi.fn(),
     screenshot: vi.fn(),
@@ -33,7 +39,7 @@ function mockDevice(focusSequence: (string | undefined)[]): TVDevice {
     waitForCondition: vi.fn(),
     deepLink: vi.fn(),
     getFocusedElement: vi.fn(() => {
-      const id = focusSequence[callIdx++];
+      const id = focusSequence[callIdx];
       if (!id) return Promise.resolve(null);
       return Promise.resolve(new UIElement('AppButton', { name: id }));
     }),
@@ -42,7 +48,7 @@ function mockDevice(focusSequence: (string | undefined)[]): TVDevice {
 
 describe('focusPath', () => {
   it('passes when all focus expectations match', async () => {
-    const device = mockDevice(['heroItem1', 'heroItem2']);
+    const device = mockDevice(['initial', 'heroItem1', 'heroItem2']);
 
     const result = await focusPath(device)
       .press('right').expectFocus('#heroItem1')
@@ -55,7 +61,7 @@ describe('focusPath', () => {
   });
 
   it('collects ALL failures without aborting on first', async () => {
-    const device = mockDevice(['wrong1', 'heroItem2', 'wrong3']);
+    const device = mockDevice(['initial', 'wrong1', 'heroItem2', 'wrong3']);
 
     const result = await focusPath(device)
       .press('right').expectFocus('#heroItem1')
@@ -70,7 +76,7 @@ describe('focusPath', () => {
   });
 
   it('includes descriptive error messages', async () => {
-    const device = mockDevice(['wrong']);
+    const device = mockDevice(['initial', 'wrong']);
 
     const result = await focusPath(device)
       .press('right').expectFocus('#heroItem1')
@@ -83,7 +89,7 @@ describe('focusPath', () => {
   });
 
   it('handles null focus (nothing focused)', async () => {
-    const device = mockDevice([undefined]);
+    const device = mockDevice(['initial', undefined]);
 
     const result = await focusPath(device)
       .press('down').expectFocus('#item1')
@@ -95,7 +101,7 @@ describe('focusPath', () => {
   });
 
   it('waits for initial focus with start()', async () => {
-    const device = mockDevice(['heroItem1']);
+    const device = mockDevice(['heroItem0', 'heroItem1']);
 
     await focusPath(device)
       .start('#heroItem0')
