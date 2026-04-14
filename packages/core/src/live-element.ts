@@ -2,10 +2,14 @@ import type { TVDevice } from './tv-device.js';
 import type { WaitOptions, Direction } from './types.js';
 import { TimeoutError } from './errors.js';
 
+// Attributes used to verify element identity across re-queries
+const IDENTITY_ATTRS = ['name', 'rcid', 'uiElementId', 'extends'] as const;
+
 export class LiveElement {
   protected device: TVDevice;
   private selector: string;
   private parentSelector: string | null;
+  private cachedIdentity: Record<string, string | undefined> | null = null;
 
   constructor(device: TVDevice, selector: string, parentSelector?: string) {
     this.device = device;
@@ -38,7 +42,30 @@ export class LiveElement {
   }
 
   async resolve() {
-    return this.device.$(this.fullSelector);
+    const el = await this.device.$(this.fullSelector);
+    if (!el) return null;
+
+    const identity = captureIdentity(el);
+
+    if (this.cachedIdentity) {
+      if (!matchesIdentity(this.cachedIdentity, identity)) {
+        // Element at this selector changed structurally.
+        // Update the cache to the new element.
+        this.cachedIdentity = identity;
+      }
+    } else {
+      this.cachedIdentity = identity;
+    }
+
+    return el;
+  }
+
+  isStale(): Promise<boolean> {
+    return this.resolve().then((el) => {
+      if (!el) return true;
+      if (!this.cachedIdentity) return false;
+      return !matchesIdentity(this.cachedIdentity, captureIdentity(el));
+    });
   }
 
   async getAttribute(name: string): Promise<string | undefined> {
@@ -65,6 +92,13 @@ export class LiveElement {
   async isFocused(): Promise<boolean> {
     const el = await this.resolve();
     return el?.focused ?? false;
+  }
+
+  async clear(): Promise<void> {
+    const text = await this.getText();
+    if (text.length > 0) {
+      await this.device.press('backspace', { times: text.length, delay: 100 });
+    }
   }
 
   async select(options?: { ifNotDisplayedNavigate?: Direction }): Promise<void> {
@@ -454,4 +488,26 @@ function describeBounds(el: { id?: string; tag: string; bounds?: Rect; getAttrib
   const rect = getBounds(el);
   if (rect) return `${name} at (${rect.x},${rect.y})`;
   return name;
+}
+
+function captureIdentity(el: { tag: string; getAttribute(n: string): string | undefined }): Record<string, string | undefined> {
+  const identity: Record<string, string | undefined> = { tag: el.tag };
+  for (const attr of IDENTITY_ATTRS) {
+    identity[attr] = el.getAttribute(attr);
+  }
+  return identity;
+}
+
+function matchesIdentity(
+  cached: Record<string, string | undefined>,
+  current: Record<string, string | undefined>,
+): boolean {
+  if (cached.tag !== current.tag) return false;
+  for (const attr of IDENTITY_ATTRS) {
+    const cachedVal = cached[attr];
+    const currentVal = current[attr];
+    // Only compare attributes that were present in the original
+    if (cachedVal !== undefined && cachedVal !== currentVal) return false;
+  }
+  return true;
 }

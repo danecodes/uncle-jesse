@@ -254,7 +254,86 @@ export class RokuAdapter implements TVDevice {
     return this.client.readConsole(options);
   }
 
+  async getMediaPlayerState(): Promise<MediaPlayerInfo> {
+    const state = await this.client.queryMediaPlayer();
+    return {
+      state: state.state,
+      isError: state.error,
+      position: state.position ? parseTimeMs(state.position) : undefined,
+      duration: state.duration ? parseTimeMs(state.duration) : undefined,
+      isLive: state.isLive,
+      format: state.format ? {
+        audio: state.format.audio,
+        video: state.format.video,
+        captions: state.format.captions,
+        drm: state.format.drm,
+      } : undefined,
+      plugin: state.plugin ? {
+        id: state.plugin.id,
+        name: state.plugin.name,
+      } : undefined,
+    };
+  }
+
+  async waitForPlayback(options?: { timeout?: number }): Promise<MediaPlayerInfo> {
+    const timeout = options?.timeout ?? 15000;
+    const interval = 500;
+    const start = Date.now();
+
+    while (Date.now() - start < timeout) {
+      const state = await this.getMediaPlayerState();
+      if (state.state === 'play') return state;
+      await new Promise((r) => setTimeout(r, interval));
+    }
+
+    throw new Error(`Video did not start playing within ${timeout}ms`);
+  }
+
+  async waitForPlaybackPosition(positionMs: number, options?: { timeout?: number }): Promise<MediaPlayerInfo> {
+    const timeout = options?.timeout ?? 30000;
+    const interval = 500;
+    const start = Date.now();
+
+    while (Date.now() - start < timeout) {
+      const state = await this.getMediaPlayerState();
+      if (state.position !== undefined && state.position >= positionMs) return state;
+      await new Promise((r) => setTimeout(r, interval));
+    }
+
+    throw new Error(`Playback did not reach ${positionMs}ms within ${timeout}ms`);
+  }
+
   async screenshot(): Promise<Buffer> {
     return this.client.takeScreenshot();
   }
+}
+
+export interface MediaPlayerInfo {
+  state: string;
+  isError: boolean;
+  position?: number;
+  duration?: number;
+  isLive?: boolean;
+  format?: {
+    audio: string;
+    video: string;
+    captions: string;
+    drm: string;
+  };
+  plugin?: {
+    id: string;
+    name: string;
+  };
+}
+
+function parseTimeMs(value: string): number {
+  // ECP returns position/duration as "HH:MM:SS" or milliseconds
+  if (value.includes(':')) {
+    const parts = value.split(':').map(Number);
+    if (parts.length === 3) {
+      return (parts[0] * 3600 + parts[1] * 60 + parts[2]) * 1000;
+    }
+  }
+  const ms = Number(value);
+  return isNaN(ms) ? 0 : ms;
 }

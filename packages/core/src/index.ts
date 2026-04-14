@@ -15,7 +15,7 @@ export { DeviceManager } from './device-manager.js';
 export { LiveElement, ElementCollection, TypedElementCollection, BaseComponent, BasePage } from './live-element.js';
 export { defineConfig, loadConfig, loadConfigFromFile } from './config.js';
 export { RegistryState } from './registry.js';
-export type { RegistryData } from './registry.js';
+export type { RegistryData, OdcClient } from './registry.js';
 export { DevicePool } from './device-pool.js';
 export type { DevicePoolOptions } from './device-pool.js';
 export {

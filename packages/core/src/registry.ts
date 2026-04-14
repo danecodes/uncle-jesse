@@ -1,5 +1,11 @@
 export type RegistryData = Record<string, Record<string, string>>;
 
+export interface OdcClient {
+  setRegistry(data: RegistryData): Promise<void>;
+  clearRegistry(sections?: string[]): Promise<void>;
+  getRegistry(): Promise<RegistryData>;
+}
+
 export class RegistryState {
   private data: RegistryData = {};
 
@@ -30,6 +36,20 @@ export class RegistryState {
       params['odc_registry'] = JSON.stringify(this.data);
     }
     return params;
+  }
+
+  async applyViaOdc(odc: OdcClient, options?: { clearFirst?: boolean }): Promise<void> {
+    if (options?.clearFirst !== false) {
+      await odc.clearRegistry();
+    }
+    if (Object.keys(this.data).length > 0) {
+      await odc.setRegistry(this.data);
+    }
+  }
+
+  static async readFromDevice(odc: OdcClient): Promise<RegistryState> {
+    const data = await odc.getRegistry();
+    return RegistryState.from(data);
   }
 
   static skipOnboarding(): RegistryState {
