@@ -12,6 +12,7 @@ export { UIElement, setDefaultQueryEngine } from './ui-element.js';
 export type { ElementQueryEngine } from './ui-element.js';
 export { SelectorEngine } from './selector-engine.js';
 export { DeviceManager } from './device-manager.js';
+export { LiveElement, ElementCollection, TypedElementCollection, BaseComponent, BasePage } from './live-element.js';
 export { defineConfig, loadConfig, loadConfigFromFile } from './config.js';
 export {
   TimeoutError,
