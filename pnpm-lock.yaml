@@ -67,6 +67,18 @@ importers:
         specifier: workspace:*
         version: link:../../packages/test
 
+  examples/roku-work-style:
+    dependencies:
+      '@danecodes/uncle-jesse-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@danecodes/uncle-jesse-roku':
+        specifier: workspace:*
+        version: link:../../packages/roku
+      '@danecodes/uncle-jesse-test':
+        specifier: workspace:*
+        version: link:../../packages/test
+
   packages/core:
     dependencies:
       cosmiconfig:
