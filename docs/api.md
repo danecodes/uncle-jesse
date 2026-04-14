@@ -69,6 +69,9 @@ A persistent reference to a UI element. Re-queries the device on each method cal
 
 ```typescript
 class LiveElement {
+  // Access the underlying device
+  getDevice(): TVDevice;
+
   // Query within this element's subtree
   $(childSelector: string): LiveElement;
   $$(childSelector: string): ElementCollection;
@@ -151,7 +154,7 @@ class BaseComponent {
   protected element: LiveElement;
   protected device: TVDevice;
 
-  constructor(element: LiveElement);
+  constructor(element: LiveElement);  // device is inferred from the element
 
   $(selector: string): LiveElement;
   $$(selector: string): ElementCollection;
@@ -223,8 +226,22 @@ class RokuAdapter implements TVDevice {
     pressDelay?: number;
   });
 
-  // All TVDevice methods, plus:
+  // All TVDevice methods, plus Roku-specific:
   readConsole(options?: { duration?: number; filter?: string }): Promise<string>;
+
+  // Note: home() waits for the current app to exit before returning.
+  // launchApp() and deepLink() wait for the target app to become active.
+}
+```
+
+#### Roku key mapping notes
+
+Some RemoteKey values map differently on Roku than you might expect:
+
+- `pause` maps to the same ECP key as `play` (Roku has a single Play/Pause toggle)
+- `channelUp` and `channelDown` map to `InputTuner` (Roku has no channel keys)
+
+```typescript
 }
 ```
 

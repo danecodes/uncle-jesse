@@ -1,5 +1,4 @@
 import type { Plugin } from 'vitest/config';
-import type { UncleJesseConfig } from '@danecodes/uncle-jesse-core';
 
 export interface UncleJessePluginOptions {
   config?: string;

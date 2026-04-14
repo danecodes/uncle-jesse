@@ -74,7 +74,7 @@ await grid.toBeFocused({ timeout: 5000 });
 
 ## Page Objects
 
-`BasePage` and `BaseComponent` provide the same structure used in production Roku test suites with WebdriverIO. If you're migrating from an Appium-based setup, this is the API you want. See the [migration guide](./docs/migration.md) for a detailed walkthrough.
+`BasePage` and `BaseComponent` provide the same structure used in production Roku test suites with WebdriverIO. If you're migrating from an Appium-based setup, this is the API you want. See the [migration guide](./docs/migration.md) for a detailed walkthrough. For simpler cases, `TVPage` in `@danecodes/uncle-jesse-test` provides a lighter base class that takes a device directly.
 
 ```typescript
 import { BasePage, BaseComponent } from '@danecodes/uncle-jesse-core';

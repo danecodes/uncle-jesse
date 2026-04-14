@@ -13,6 +13,10 @@ export class LiveElement {
     this.parentSelector = parentSelector ?? null;
   }
 
+  getDevice(): TVDevice {
+    return this.device;
+  }
+
   get fullSelector(): string {
     if (this.parentSelector) {
       return `${this.parentSelector} ${this.selector}`;
@@ -242,10 +246,9 @@ export class BaseComponent {
   protected element: LiveElement;
   protected device: TVDevice;
 
-  constructor(element: LiveElement);
-  constructor(element: LiveElement, device?: TVDevice) {
+  constructor(element: LiveElement) {
     this.element = element;
-    this.device = device ?? (element as any).device;
+    this.device = element.getDevice();
   }
 
   $(selector: string): LiveElement {

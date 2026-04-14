@@ -10,7 +10,7 @@ export const RokuKeyMap: Record<RemoteKey, KeyName> = {
   left: 'Left',
   right: 'Right',
   play: 'Play',
-  pause: 'Play',
+  pause: 'Play', // Roku has a single Play/Pause toggle key
   rewind: 'Rev',
   fastForward: 'Fwd',
   info: 'Info',
@@ -20,6 +20,6 @@ export const RokuKeyMap: Record<RemoteKey, KeyName> = {
   volumeDown: 'VolumeDown',
   mute: 'VolumeMute',
   powerOff: 'PowerOff',
-  channelUp: 'InputTuner',
+  channelUp: 'InputTuner', // Roku has no channel keys; maps to tuner input
   channelDown: 'InputTuner',
 };
