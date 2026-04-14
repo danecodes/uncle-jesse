@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { runTests } from './commands/test.js';
 import { runDiscover } from './commands/discover.js';
+import { runSideload } from './commands/sideload.js';
 
 export function createCli(): Command {
   const program = new Command();
@@ -23,6 +24,14 @@ export function createCli(): Command {
     .description('Discover TV devices on the network')
     .option('--timeout <ms>', 'Discovery timeout in ms', '5000')
     .action(runDiscover);
+
+  program
+    .command('sideload')
+    .description('Sideload a channel zip to a Roku device')
+    .argument('<zip>', 'Path to the channel .zip file')
+    .option('--ip <address>', 'Device IP (or set UNCLE_JESSE_ROKU_IP)')
+    .option('--password <password>', 'Dev password (default: rokudev)')
+    .action(runSideload);
 
   return program;
 }

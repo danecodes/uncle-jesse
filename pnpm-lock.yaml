@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@danecodes/roku-ecp':
+        specifier: 0.3.3
+        version: 0.3.3
     devDependencies:
       '@changesets/cli':
         specifier: ^2.30.0
@@ -89,6 +93,9 @@ importers:
 
   packages/uncle-jesse:
     dependencies:
+      '@danecodes/roku-ecp':
+        specifier: 0.3.3
+        version: 0.3.3
       '@danecodes/uncle-jesse-core':
         specifier: workspace:*
         version: link:../core

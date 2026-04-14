@@ -96,6 +96,10 @@ export class RokuAdapter implements TVDevice {
     await this.client.closeApp();
   }
 
+  async deepLink(channelId: string, contentId: string, mediaType?: string): Promise<void> {
+    await this.client.deepLink(channelId, contentId, mediaType);
+  }
+
   async getActiveApp(): Promise<AppInfo> {
     const app = await this.client.queryActiveApp();
     return {
@@ -190,6 +194,24 @@ export class RokuAdapter implements TVDevice {
     }
 
     throw new TimeoutError(selector, Date.now() - start, lastTree);
+  }
+
+  async waitForCondition<T>(predicate: () => Promise<T | null | false>, options?: WaitOptions): Promise<T> {
+    const timeout = options?.timeout ?? 10000;
+    const interval = options?.interval ?? 200;
+    const start = Date.now();
+
+    while (Date.now() - start < timeout) {
+      const result = await predicate();
+      if (result !== null && result !== false) return result;
+      await new Promise((resolve) => setTimeout(resolve, interval));
+    }
+
+    throw new TimeoutError('waitForCondition', Date.now() - start);
+  }
+
+  async readConsole(options?: { duration?: number; filter?: string }): Promise<string> {
+    return this.client.readConsole(options);
   }
 
   async screenshot(): Promise<Buffer> {

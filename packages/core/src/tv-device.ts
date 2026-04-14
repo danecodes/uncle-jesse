@@ -30,6 +30,8 @@ export interface TVDevice {
   getFocusedElement(): Promise<UIElement | null>;
   waitForElement(selector: string, options?: WaitOptions): Promise<UIElement>;
   waitForFocus(selector: string, options?: WaitOptions): Promise<UIElement>;
+  waitForCondition<T>(predicate: () => Promise<T | null | false>, options?: WaitOptions): Promise<T>;
 
+  deepLink(channelId: string, contentId: string, mediaType?: string): Promise<void>;
   screenshot(): Promise<Buffer>;
 }
