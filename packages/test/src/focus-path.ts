@@ -111,8 +111,20 @@ class FocusPathBuilder {
       const step = this.steps[i];
       await this.device.press(step.key);
 
-      const focused = await this.device.getFocusedElement();
-      const passed = matchesFocused(focused, step.expectedSelector);
+      // Poll for the expected focus state, giving the UI time to settle
+      let focused = await this.device.getFocusedElement();
+      let passed = matchesFocused(focused, step.expectedSelector);
+
+      if (!passed) {
+        const pollStart = Date.now();
+        const pollTimeout = 3000;
+        while (!passed && Date.now() - pollStart < pollTimeout) {
+          await new Promise((r) => setTimeout(r, 150));
+          focused = await this.device.getFocusedElement();
+          passed = matchesFocused(focused, step.expectedSelector);
+        }
+      }
+
       const actualDesc = describeFocused(focused);
 
       if (!passed) {
