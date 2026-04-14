@@ -1,6 +1,6 @@
 # Migrating from Appium/WebdriverIO
 
-This guide covers migrating a Roku E2E test suite from the Appium stack (WebdriverIO + appium-roku-driver + Selenium Grid) to Uncle Jesse.
+This guide covers migrating a Roku E2E test suite from the Appium stack (WebdriverIO + appium-roku-driver + Selenium Grid) to Uncle Jesse. For the full API, see [API Reference](./api.md). For selector and focus details, see [Roku Focus Behavior](./roku-focus.md).
 
 ## What changes
 

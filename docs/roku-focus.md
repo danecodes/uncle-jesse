@@ -1,6 +1,6 @@
 # Roku Focus Behavior
 
-Notes on how Roku handles focus in the SceneGraph tree, learned from testing against real devices.
+Notes on how Roku handles focus in the SceneGraph tree, learned from testing against real devices. For how to structure your channel to work well with these behaviors, see [Writing Testable Channels](./testable-channels.md). For the API that handles focus, see [API Reference](./api.md#liveelement).
 
 ## Focus chain
 

@@ -42,7 +42,7 @@ await tv.disconnect();
 
 ## LiveElement
 
-LiveElement is a persistent reference to a UI element that re-queries the device on each call. It supports chained selectors, actions, and built-in assertions with polling.
+LiveElement is a persistent reference to a UI element that re-queries the device on each call. It supports chained selectors, actions, and built-in assertions with polling. See the [API reference](./docs/api.md#liveelement) for the full method list.
 
 ```typescript
 import { LiveElement } from '@danecodes/uncle-jesse-core';
@@ -74,7 +74,7 @@ await grid.toBeFocused({ timeout: 5000 });
 
 ## Page Objects
 
-`BasePage` and `BaseComponent` provide the same structure used in production Roku test suites with WebdriverIO. If you're migrating from an Appium-based setup, this is the API you want.
+`BasePage` and `BaseComponent` provide the same structure used in production Roku test suites with WebdriverIO. If you're migrating from an Appium-based setup, this is the API you want. See the [migration guide](./docs/migration.md) for a detailed walkthrough.
 
 ```typescript
 import { BasePage, BaseComponent } from '@danecodes/uncle-jesse-core';
@@ -140,7 +140,7 @@ const firstCard = cards.get(0);      // returns a CardComponent instance
 
 ## Selectors
 
-Uncle Jesse uses CSS-like selectors against the Roku SceneGraph tree:
+Uncle Jesse uses CSS-like selectors against the Roku SceneGraph tree. See [Writing Testable Channels](./docs/testable-channels.md) for how to structure your app for best results.
 
 | Pattern | Example | Matches |
 |---------|---------|---------|
@@ -159,7 +159,7 @@ Attribute values with spaces work: `[text="Add to List"]`.
 
 ## focusPath
 
-A chainable builder for verifying D-pad spatial navigation. Runs every step and collects all failures instead of stopping on the first one. After each key press, it waits for focus to stabilize (two consecutive tree queries agreeing) before checking the expectation.
+A chainable builder for verifying D-pad spatial navigation. Runs every step and collects all failures instead of stopping on the first one. After each key press, it waits for focus to stabilize (two consecutive tree queries agreeing) before checking the expectation. For details on how Roku handles focus, see [Roku Focus Behavior](./docs/roku-focus.md).
 
 ```typescript
 import { focusPath } from '@danecodes/uncle-jesse-test';

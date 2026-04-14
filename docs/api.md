@@ -1,5 +1,7 @@
 # API Reference
 
+For migration from Appium/WebdriverIO, see [Migration Guide](./migration.md). For Roku-specific behavior, see [Roku Focus Behavior](./roku-focus.md). For structuring your app for testing, see [Writing Testable Channels](./testable-channels.md).
+
 ## @danecodes/uncle-jesse-core
 
 ### TVDevice
