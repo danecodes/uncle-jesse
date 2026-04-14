@@ -98,29 +98,23 @@ export class LiveElement {
     throw new TimeoutError(this.fullSelector, Date.now() - start);
   }
 
-  // Assertions that poll with timeout
+  // Assertions that poll with timeout.
+  // Checks if the element has focused="true" in its attributes,
+  // meaning it's anywhere in the Roku focus chain (not just the leaf).
   async toBeFocused(options?: WaitOptions): Promise<void> {
     const timeout = options?.timeout ?? 10000;
     const interval = options?.interval ?? 200;
     const start = Date.now();
 
     while (Date.now() - start < timeout) {
-      const focused = await this.device.getFocusedElement();
       const el = await this.resolve();
-      if (el && focused) {
-        const elId = el.id ?? el.getAttribute('title') ?? el.tag;
-        const focusedId = focused.id ?? focused.getAttribute('title') ?? focused.tag;
-        if (elId === focusedId) return;
-      }
+      if (el?.focused) return;
       await sleep(interval);
     }
 
-    const el = await this.resolve();
-    const focused = await this.device.getFocusedElement();
-    const expected = el?.id ?? el?.getAttribute('title') ?? this.fullSelector;
-    const actual = focused?.id ?? focused?.getAttribute('title') ?? '<nothing>';
+    const expected = (await this.resolve())?.id ?? this.fullSelector;
     throw new Error(
-      `Expected ${expected} to be focused, but ${actual} has focus`
+      `Expected ${expected} to be focused, but it is not in the focus chain`
     );
   }
 
