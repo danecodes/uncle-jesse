@@ -129,8 +129,9 @@ class FocusPathBuilder {
       }
 
       if (recorder) {
-        // Capture screenshot immediately after focus stabilizes,
-        // before any more time passes. Then grab the tree.
+        // Wait for the on-screen animation to finish rendering.
+        // The SceneGraph tree updates before the visual animation completes.
+        await new Promise((r) => setTimeout(r, 1000));
         let screenshot: Buffer | undefined;
         try {
           screenshot = await this.device.screenshot();

@@ -71,4 +71,8 @@ it('focusPath records replay with screenshots', async () => {
 
   // Verify screenshots are different (different focus positions)
   expect(result.replay!.frames[0].screenshot).not.toBe(result.replay!.frames[1].screenshot);
+
+  // Save the replay for inspection
+  const { saveReplay } = await import('@danecodes/uncle-jesse-test/replay');
+  await saveReplay(result.replay!, './test-results');
 });

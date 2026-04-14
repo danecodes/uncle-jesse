@@ -21,11 +21,11 @@
             itemSize="[1280, 200]"
             numRows="3"
             itemSpacing="[0, 10]"
-            focusBitmapBlendColor="0x333366ff"
             rowItemSize="[[230, 130]]"
             rowItemSpacing="[[10, 0]]"
             showRowLabel="true"
             showRowCounter="true"
-            rowLabelOffset="[[40, 5]]" />
+            rowLabelOffset="[[40, 5]]"
+            drawFocusFeedback="true" />
     </children>
 </component>
