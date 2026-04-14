@@ -17,13 +17,59 @@ export interface FocusPathFailure {
   step: number;
   key: RemoteKey;
   expectedSelector: string;
-  actualFocusId: string | undefined;
+  actualFocus: string | undefined;
   message: string;
 }
 
 export interface FocusPathOptions {
   record?: boolean;
   testName?: string;
+}
+
+function describeFocused(el: { id?: string; tag: string; getAttribute(n: string): string | undefined } | null): string {
+  if (!el) return '<nothing>';
+  if (el.id) return '#' + el.id;
+  const title = el.getAttribute('title');
+  if (title) return el.tag + '[title="' + title + '"]';
+  return el.tag;
+}
+
+function matchesFocused(
+  el: { id?: string; tag: string; getAttribute(n: string): string | undefined } | null,
+  selector: string,
+): boolean {
+  if (!el) return false;
+
+  // #id - match by name/id
+  if (selector.startsWith('#')) {
+    return el.id === selector.slice(1);
+  }
+
+  // [attr="value"] - match by attribute
+  const attrMatch = selector.match(/^\[(\w+)="([^"]+)"\]$/);
+  if (attrMatch) {
+    return el.getAttribute(attrMatch[1]) === attrMatch[2];
+  }
+
+  // Tag[attr="value"] - match tag + attribute
+  const tagAttrMatch = selector.match(/^(\w+)\[(\w+)="([^"]+)"\]$/);
+  if (tagAttrMatch) {
+    return el.tag === tagAttrMatch[1] && el.getAttribute(tagAttrMatch[2]) === tagAttrMatch[3];
+  }
+
+  // Tag#id - match tag + id
+  const tagIdMatch = selector.match(/^(\w+)#(\w+)$/);
+  if (tagIdMatch) {
+    return el.tag === tagIdMatch[1] && el.id === tagIdMatch[2];
+  }
+
+  // Plain tag name
+  if (/^\w+$/.test(selector)) {
+    return el.tag === selector;
+  }
+
+  // Fallback: try id match
+  return el.id === selector;
 }
 
 class FocusPathBuilder {
@@ -66,17 +112,16 @@ class FocusPathBuilder {
       await this.device.press(step.key);
 
       const focused = await this.device.getFocusedElement();
-      const focusedId = focused?.id;
-      const expectedId = step.expectedSelector.replace(/^#/, '');
-      const passed = focusedId === expectedId;
+      const passed = matchesFocused(focused, step.expectedSelector);
+      const actualDesc = describeFocused(focused);
 
       if (!passed) {
         failures.push({
           step: i + 1,
           key: step.key,
           expectedSelector: step.expectedSelector,
-          actualFocusId: focusedId,
-          message: `Step ${i + 1}: After pressing ${step.key.toUpperCase()}, expected focus on ${step.expectedSelector} but found focus on ${focusedId ? '#' + focusedId : '<nothing>'}`,
+          actualFocus: actualDesc,
+          message: `Step ${i + 1}: After pressing ${step.key.toUpperCase()}, expected focus on ${step.expectedSelector} but found focus on ${actualDesc}`,
         });
       }
 
@@ -86,13 +131,13 @@ class FocusPathBuilder {
         try {
           screenshot = await this.device.screenshot();
         } catch {
-          // screenshot not available (e.g. dev mode off)
+          // screenshot not available
         }
         recorder.recordStep(
           i + 1,
           step.key,
           step.expectedSelector,
-          focusedId,
+          actualDesc,
           passed,
           tree,
           screenshot,

@@ -151,13 +151,43 @@ export class RokuAdapter implements TVDevice {
   }
 
   async getFocusedElement(): Promise<UIElement | null> {
-    // Roku sets focused="true" on the entire focus chain (root to leaf).
-    // We want the deepest focused node — the actual leaf with user focus.
+    // Roku marks focused="true" on items in every row, not just the
+    // active one. Walk down the focus chain from root, always picking
+    // the first focused child at each level. When no direct child is
+    // focused (e.g. PosterGrid doesn't get the attr), search all
+    // descendants of each child for focused nodes and follow that branch.
     const raw = await this.getRawUITree();
-    const allFocused = findElements(raw, '[focused="true"]');
-    if (allFocused.length === 0) return null;
-    const deepest = allFocused[allFocused.length - 1];
-    return this.uiNodeToElement(deepest);
+    const leaf = this.findFocusLeaf(raw);
+    if (!leaf) return null;
+    return this.uiNodeToElement(leaf);
+  }
+
+  private findFocusLeaf(node: UiNode): UiNode | null {
+    const focusedChild = node.children.find(
+      (c) => c.attrs['focused'] === 'true',
+    );
+    if (focusedChild) {
+      // Recurse deeper into this branch
+      return this.findFocusLeaf(focusedChild) ?? focusedChild;
+    }
+
+    // No direct focused child. Check if any child has a focused descendant
+    // (handles cases like PosterGrid where the container isn't focused).
+    for (const child of node.children) {
+      if (this.hasFocusedDescendant(child)) {
+        return this.findFocusLeaf(child);
+      }
+    }
+
+    return null;
+  }
+
+  private hasFocusedDescendant(node: UiNode): boolean {
+    for (const child of node.children) {
+      if (child.attrs['focused'] === 'true') return true;
+      if (this.hasFocusedDescendant(child)) return true;
+    }
+    return false;
   }
 
   async waitForElement(selector: string, options?: WaitOptions): Promise<UIElement> {

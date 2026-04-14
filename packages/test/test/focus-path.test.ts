@@ -91,7 +91,7 @@ describe('focusPath', () => {
 
     expect(result.passed).toBe(false);
     expect(result.failures[0].message).toContain('<nothing>');
-    expect(result.failures[0].actualFocusId).toBeUndefined();
+    expect(result.failures[0].actualFocus).toBe('<nothing>');
   });
 
   it('waits for initial focus with start()', async () => {
