@@ -27,6 +27,6 @@
     ]
   },
   "dependencies": {
-    "@danecodes/roku-ecp": "0.4.3"
+    "@danecodes/roku-ecp": "0.4.4"
   }
 }

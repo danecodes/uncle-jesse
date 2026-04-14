@@ -26,7 +26,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@danecodes/roku-ecp": "0.4.3",
+    "@danecodes/roku-ecp": "0.4.4",
     "@danecodes/uncle-jesse-core": "workspace:*",
     "@danecodes/uncle-jesse-roku": "workspace:*",
     "@danecodes/uncle-jesse-test": "workspace:*",

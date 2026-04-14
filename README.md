@@ -12,256 +12,268 @@ npm install @danecodes/uncle-jesse-core @danecodes/uncle-jesse-roku @danecodes/u
 
 ## Quick Start
 
-### 1. Configure your device
-
 ```typescript
-// uncle-jesse.config.ts
-import { defineConfig } from '@danecodes/uncle-jesse-core';
-
-export default defineConfig({
-  devices: [
-    {
-      name: 'living-room',
-      platform: 'roku',
-      ip: '192.168.1.100',
-      rokuDevPassword: 'rokudev',
-    },
-  ],
-  defaults: { timeout: 10000, pressDelay: 150 },
-  app: { rokuAppId: 'dev' },
-});
-```
-
-### 2. Set up vitest
-
-```typescript
-// setup.ts
-import { setDeviceFactory } from '@danecodes/uncle-jesse-test';
 import { RokuAdapter } from '@danecodes/uncle-jesse-roku';
-import config from './uncle-jesse.config.js';
+import { BasePage } from '@danecodes/uncle-jesse-core';
 
-const device = config.devices[0];
-
-setDeviceFactory(async () => {
-  return new RokuAdapter({
-    name: device.name,
-    ip: device.ip,
-    devPassword: device.rokuDevPassword,
-    timeout: config.defaults?.timeout,
-    pressDelay: config.defaults?.pressDelay,
-  });
+const tv = new RokuAdapter({
+  name: 'dev-roku',
+  ip: process.env.ROKU_IP ?? '192.168.1.100',
+  devPassword: 'rokudev',
 });
+
+await tv.connect();
+await tv.launchApp('dev');
+
+// Query the UI tree with CSS-like selectors
+const grid = await tv.$('HomeScreen RowList');
+const title = await tv.$('Label#screenTitle');
+
+// Navigate with D-pad
+await tv.press('right', { times: 3 });
+await tv.select();
+
+// Check what has focus
+const focused = await tv.getFocusedElement();
+console.log(focused?.getAttribute('title'));
+
+await tv.disconnect();
 ```
+
+## LiveElement
+
+LiveElement is a persistent reference to a UI element that re-queries the device on each call. It supports chained selectors, actions, and built-in assertions with polling.
 
 ```typescript
-// vitest.config.ts
-import { defineConfig } from 'vitest/config';
+import { LiveElement } from '@danecodes/uncle-jesse-core';
 
-export default defineConfig({
-  test: {
-    setupFiles: ['./setup.ts'],
-    testTimeout: 30000,
-  },
-});
+const homeScreen = new LiveElement(tv, 'HomeScreen');
+
+// Chained queries scope to the parent's subtree
+const grid = homeScreen.$('RowList');
+const title = homeScreen.$('Label#screenTitle');
+
+// Actions
+await homeScreen.select();
+await homeScreen.focus();
+
+// State queries
+await homeScreen.isDisplayed();    // true if visible attr is not "false"
+await homeScreen.isExisting();     // true if element exists in tree
+await homeScreen.isFocused();      // true if element has focused="true"
+await title.getText();             // returns the text attribute value
+await title.getAttribute('color'); // returns any attribute
+
+// Assertions with polling (wait up to timeout for condition)
+await homeScreen.toBeDisplayed({ timeout: 10000 });
+await homeScreen.toNotBeDisplayed();
+await homeScreen.toExist();
+await title.toHaveText('Home');
+await grid.toBeFocused({ timeout: 5000 });
 ```
 
-### 3. Write a test
+## Page Objects
+
+`BasePage` and `BaseComponent` provide the same structure used in production Roku test suites with WebdriverIO. If you're migrating from an Appium-based setup, this is the API you want.
 
 ```typescript
-import { test } from '@danecodes/uncle-jesse-test';
-import { expect } from 'vitest';
+import { BasePage, BaseComponent } from '@danecodes/uncle-jesse-core';
 
-test('app launches and shows grid', async ({ tv }) => {
-  await tv.launchApp('dev');
-  const grid = await tv.waitForElement('RowList');
-  expect(grid).toExist();
+class NavBar extends BaseComponent {
+  get homeTab() { return this.$('NavTab#tabHome'); }
+  get searchTab() { return this.$('NavTab#tabSearch'); }
+
+  async selectHome() { await this.homeTab.select(); }
+  async selectSearch() { await this.searchTab.select(); }
+}
+
+class HomePage extends BasePage {
+  get root() { return this.$('HomeScreen'); }
+  get navBar() { return new NavBar(this.$('NavBar')); }
+  get grid() { return this.$('HomeScreen RowList'); }
+
+  async waitForLoaded() {
+    await this.root.toBeDisplayed();
+    await this.grid.waitForExisting();
+  }
+}
+```
+
+Use them in tests:
+
+```typescript
+import { beforeEach, it } from 'vitest';
+
+let device: TVDevice;
+let home: HomePage;
+
+beforeEach(async () => {
+  device = new RokuAdapter({ name: 'test', ip: '192.168.1.100' });
+  await device.connect();
+  home = new HomePage(device, null);
+  await device.home();
+  await device.launchApp('dev');
+  await home.waitForLoaded();
+});
+
+it('navigate to search', async () => {
+  await device.press('up');
+  await home.navBar.selectSearch();
+  await home.root.toNotBeDisplayed();
 });
 ```
 
-### 4. Run it
+## Element Collections
 
-```bash
-npx uncle-jesse test
-# or
-npx vitest run
+`$$` returns an `ElementCollection` with `.get(index)` and async `.length`. You can also pass a component class to get typed results.
+
+```typescript
+const rows = home.$$('RowListItem');
+const count = await rows.length;     // number of matching elements
+const first = rows.get(0);           // LiveElement for the first match
+await first.toBeDisplayed();
+
+// Typed collections
+const cards = home.$$('LinearCard', CardComponent);
+const firstCard = cards.get(0);      // returns a CardComponent instance
 ```
+
+## Selectors
+
+Uncle Jesse uses CSS-like selectors against the Roku SceneGraph tree:
+
+| Pattern | Example | Matches |
+|---------|---------|---------|
+| Tag name | `RowList` | Elements with that tag |
+| ID | `#screenTitle` | Element with `name="screenTitle"` |
+| Tag + ID | `Label#screenTitle` | Label with that name |
+| Descendant | `HomeScreen RowList` | RowList anywhere inside HomeScreen |
+| Child | `LayoutGroup > Label` | Direct child only |
+| Attribute | `[focused="true"]` | Element with that attribute value |
+| Attribute existence | `[focusable]` | Element with that attribute present |
+| Tag + attribute | `Label[text="Home"]` | Label with text="Home" |
+| Adjacent sibling | `Module + Module` | Module preceded by another Module |
+| nth-child | `NavTab:nth-child(2)` | Second NavTab child |
+
+Attribute values with spaces work: `[text="Add to List"]`.
 
 ## focusPath
 
-A chainable builder for verifying D-pad spatial navigation. It runs every step and collects all failures instead of bailing on the first one, so you can see the full scope of a broken nav flow at once.
+A chainable builder for verifying D-pad spatial navigation. Runs every step and collects all failures instead of stopping on the first one. After each key press, it waits for focus to stabilize (two consecutive tree queries agreeing) before checking the expectation.
 
 ```typescript
-import { test, focusPath } from '@danecodes/uncle-jesse-test';
-import { expect } from 'vitest';
+import { focusPath } from '@danecodes/uncle-jesse-test';
 
-test('hero carousel navigation', async ({ tv }) => {
-  const result = await focusPath(tv)
-    .start('#heroItem0')
-    .press('right').expectFocus('#heroItem1')
-    .press('right').expectFocus('#heroItem2')
-    .press('down').expectFocus('#categoryRow1')
-    .verify();
+const result = await focusPath(tv)
+  .press('right').expectFocus('[title="featured-item-2"]')
+  .press('right').expectFocus('[title="featured-item-3"]')
+  .press('down').expectFocus('[title="recent-item-2"]')
+  .verify();
 
-  expect(result.passed).toBe(true);
-});
+expect(result.passed).toBe(true);
 ```
 
-When steps fail, the output tells you exactly what happened:
+Supports `#id`, `[attr="value"]`, `Tag#id`, and `Tag[attr="value"]` selectors for focus matching.
+
+When steps fail:
 
 ```
-Step 3: After pressing RIGHT, expected focus on #heroItem2 but found focus on #heroItem1
-Step 7: After pressing DOWN, expected focus on #categoryRow1 but found focus on <nothing>
-```
-
-Pass `{ record: true }` to capture a visual replay of each step (see [Visual Replay Debugger](#visual-replay-debugger)).
-
-## Custom Assertions
-
-Extends vitest's `expect` with matchers for TV UI elements:
-
-```typescript
-expect(element).toBeFocused();
-expect(element).toBeVisible();
-expect(element).toHaveText('Movies');
-expect(element).toExist();
-expect(element).toHaveAttribute('opacity', '1.0');
-```
-
-## Page Object Model
-
-Wrap screen-specific selectors and actions in classes that extend `TVPage`:
-
-```typescript
-import { TVPage } from '@danecodes/uncle-jesse-test';
-
-class GridScreen extends TVPage {
-  async waitForLoad() {
-    await this.waitForElement('RowList');
-  }
-
-  async selectCurrentItem() {
-    await this.device.select();
-  }
-}
-
-test('browse and select', async ({ tv }) => {
-  const grid = new GridScreen(tv);
-  await grid.waitForLoad();
-  await grid.selectCurrentItem();
-});
+Step 1: After pressing RIGHT, expected focus on [title="featured-item-2"]
+        but found focus on RenderableNode[title="featured-item-1"]
 ```
 
 ## Visual Replay Debugger
 
-focusPath can record a timeline of UI tree snapshots at each step. The output is a self-contained HTML file you can scrub through like a video, showing which element had focus at each step and whether it matched the expectation.
+Pass `{ record: true }` to focusPath to capture a device screenshot and UI tree snapshot at each step. The output is a self-contained HTML file with a scrubber, step details, and side-by-side screenshot and tree view.
 
 ```typescript
-const result = await focusPath(tv, { record: true, testName: 'hero nav' })
-  .start('#heroItem0')
-  .press('right').expectFocus('#heroItem1')
+const result = await focusPath(tv, { record: true, testName: 'grid-nav' })
+  .press('right').expectFocus('[title="featured-item-2"]')
+  .press('down').expectFocus('[title="recent-item-2"]')
   .verify();
 
 if (result.replay) {
-  const { saveReplay } = await import('@danecodes/uncle-jesse-test');
+  const { saveReplay } = await import('@danecodes/uncle-jesse-test/replay');
   await saveReplay(result.replay, './test-results');
-  // Writes test-results/hero-nav-replay.html
 }
 ```
 
-## Device Discovery
+## Screenshot on Failure
 
-Find Roku devices on your local network:
-
-```bash
-npx uncle-jesse discover
-```
+When using the vitest `tv` fixture, a device screenshot is automatically saved to `test-results/` when a test fails. Configure with:
 
 ```typescript
-import { RokuDiscovery } from '@danecodes/uncle-jesse-roku';
-
-const discovery = new RokuDiscovery();
-const devices = await discovery.findAll({ timeout: 5000 });
+import { setScreenshotOnFailure } from '@danecodes/uncle-jesse-test';
+setScreenshotOnFailure(true, './test-results');
 ```
 
-## CI (GitHub Actions)
+## CLI
 
-Unit tests (selector engine, parsers, matchers) run on any CI runner. Device tests need a self-hosted runner on the same network as the Roku.
+```bash
+# Run tests
+npx uncle-jesse test
+npx uncle-jesse test --reporter junit
+npx uncle-jesse test --watch
 
-```yaml
-name: TV Tests
-on: [push, pull_request]
+# Discover devices on the network
+npx uncle-jesse discover
+npx uncle-jesse discover --timeout 10000
 
-jobs:
-  unit-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - run: pnpm install
-      - run: pnpm test
-
-  device-tests:
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - run: pnpm install
-      - run: npx uncle-jesse test --reporter junit
-        env:
-          UNCLE_JESSE_ROKU_IP: 10.0.1.50
+# Sideload a channel (zip file or directory)
+npx uncle-jesse sideload ./my-channel --ip 192.168.1.100
+npx uncle-jesse sideload ./build.zip --ip 192.168.1.100 --password rokudev
 ```
+
+## Deep Linking
+
+Launch directly to a specific content item:
+
+```typescript
+await tv.deepLink('dev', 'content-123', 'movie');
+```
+
+The adapter waits for the target app to become active before returning.
 
 ## Architecture
 
 ```
 Test Script (user code)
       |
-@danecodes/uncle-jesse-test    expect API, focusPath, vitest plugin
+@danecodes/uncle-jesse-test    focusPath, assertions, vitest plugin, replay
       |
-@danecodes/uncle-jesse-core    TVDevice interface, UIElement, selectors
+@danecodes/uncle-jesse-core    TVDevice, LiveElement, BasePage, selectors
       |
-@danecodes/uncle-jesse-roku    adapter wrapping @danecodes/roku-ecp
+@danecodes/uncle-jesse-roku    RokuAdapter wrapping @danecodes/roku-ecp
       |
-ECP HTTP API         port 8060 on the Roku device
+ECP HTTP API                   port 8060 on the Roku device
 ```
 
 ## Packages
 
 | Package | Description |
 |---------|-------------|
-| `@danecodes/uncle-jesse-core` | Platform-agnostic interfaces, UIElement, SelectorEngine, config |
+| `@danecodes/uncle-jesse-core` | TVDevice interface, LiveElement, BasePage, BaseComponent, SelectorEngine, config |
 | `@danecodes/uncle-jesse-roku` | Roku adapter wrapping [@danecodes/roku-ecp](https://github.com/danecodes/roku-ecp) |
-| `@danecodes/uncle-jesse-test` | focusPath, assertions, vitest plugin, TVPage |
-| `uncle-jesse` | CLI and reporters (console, JUnit XML) |
+| `@danecodes/uncle-jesse-test` | focusPath, vitest matchers, vitest plugin, replay debugger |
+| `uncle-jesse` | CLI (test, discover, sideload) and reporters |
 
 ## Examples
 
-The [`examples/`](./examples) directory has three working test suites that run against a bundled Roku sample app:
+The [`examples/`](./examples) directory has working test suites that run against a bundled test channel:
 
-- `roku-basic` - launch, navigate, select items, back navigation
-- `roku-focus-path` - focusPath builder, failure reporting
+- `roku-basic` - smoke tests: launch, navigate, select, back
+- `roku-focus-path` - focusPath with title-based selectors and replay recording
 - `roku-page-objects` - page object pattern with GridScreen and DetailsScreen
+- `roku-work-style` - full test suite using BasePage/BaseComponent (23 tests covering navigation, search, settings, deep linking, focusPath)
 
-## Writing Testable Channels
+## Docs
 
-Uncle Jesse queries the SceneGraph XML tree that Roku exposes over ECP. Custom components (anything you define in XML) show up by their component name and are queryable with selectors like `HomePage HomeHeroCarousel`. Built-in list components like RowList and PosterGrid render their children as anonymous `RenderableNode` elements that don't carry your component names.
+See the [`docs/`](./docs) directory for detailed guides:
 
-To make your channel easy to test:
-
-- Set the `id` field on components you want to target in tests. This becomes the `name` attribute in the SceneGraph tree and is queryable with `#myButton` selectors.
-- Use descriptive component names. `HomeHeroCarousel` is a better selector target than `Group`.
-- Set fields on ContentNode items (like `title`) that you can match with attribute selectors: `[title="Action Movies"]`.
-- Avoid deep nesting of anonymous Groups. Each named component in your hierarchy is a selector anchor point.
-
-This is the same principle as using `data-testid` in web apps. The ECP tree only exposes what SceneGraph gives it, so building with identifiers in mind makes your tests cleaner and more stable.
-
-## Roadmap
-
-See [ROADMAP.md](./ROADMAP.md) for planned work including WebOS support, a device dashboard, and visual regression testing.
+- [Migration from Appium/WebdriverIO](./docs/migration.md)
+- [API Reference](./docs/api.md)
+- [Writing Testable Channels](./docs/testable-channels.md)
+- [Roku Focus Behavior](./docs/roku-focus.md)
 
 ## License
 
