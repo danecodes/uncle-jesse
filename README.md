@@ -246,6 +246,19 @@ The [`examples/`](./examples) directory has three working test suites that run a
 - `roku-focus-path` - focusPath builder, failure reporting
 - `roku-page-objects` - page object pattern with GridScreen and DetailsScreen
 
+## Writing Testable Channels
+
+Uncle Jesse queries the SceneGraph XML tree that Roku exposes over ECP. Custom components (anything you define in XML) show up by their component name and are queryable with selectors like `HomePage HomeHeroCarousel`. Built-in list components like RowList and PosterGrid render their children as anonymous `RenderableNode` elements that don't carry your component names.
+
+To make your channel easy to test:
+
+- Set the `id` field on components you want to target in tests. This becomes the `name` attribute in the SceneGraph tree and is queryable with `#myButton` selectors.
+- Use descriptive component names. `HomeHeroCarousel` is a better selector target than `Group`.
+- Set fields on ContentNode items (like `title`) that you can match with attribute selectors: `[title="Action Movies"]`.
+- Avoid deep nesting of anonymous Groups. Each named component in your hierarchy is a selector anchor point.
+
+This is the same principle as using `data-testid` in web apps. The ECP tree only exposes what SceneGraph gives it, so building with identifiers in mind makes your tests cleaner and more stable.
+
 ## Roadmap
 
 See [ROADMAP.md](./ROADMAP.md) for planned work including WebOS support, a device dashboard, and visual regression testing.
