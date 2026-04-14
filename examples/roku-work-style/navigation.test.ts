@@ -51,9 +51,9 @@ it('select grid item opens details screen', async () => {
 it('details screen shows action buttons', async () => {
   await device.select();
   await details.waitForLoaded();
-  // LabelList renders button text on nested Labels inside RenderableNode > LabelListItem.
-  // Verify the LabelList itself exists and has 3 items.
-  await details.$('DetailsScreen LabelList#actionButtons').toExist();
+  await details.actionButtons.playBtn.toExist();
+  await details.actionButtons.addToListBtn.toExist();
+  await details.actionButtons.relatedBtn.toExist();
 });
 
 it('back from details returns to home', async () => {
