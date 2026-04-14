@@ -1,5 +1,5 @@
 import type { TVDevice } from './tv-device.js';
-import type { WaitOptions } from './types.js';
+import type { WaitOptions, Direction } from './types.js';
 import { TimeoutError } from './errors.js';
 
 export class LiveElement {
@@ -67,13 +67,62 @@ export class LiveElement {
     return el?.focused ?? false;
   }
 
-  async select(): Promise<void> {
+  async select(options?: { ifNotDisplayedNavigate?: Direction }): Promise<void> {
+    if (options?.ifNotDisplayedNavigate) {
+      await this.scrollUntilDisplayed(options.ifNotDisplayedNavigate);
+    }
     await this.focus();
     await this.device.select();
   }
 
-  async focus(): Promise<void> {
-    await this.waitForExisting();
+  async focus(options?: {
+    direction?: Direction;
+    maxAttempts?: number;
+    timeout?: number;
+  }): Promise<void> {
+    const el = await this.resolve();
+    if (el?.focused) return;
+
+    const direction = options?.direction ?? 'down';
+    const maxAttempts = options?.maxAttempts ?? 30;
+    const timeout = options?.timeout ?? 15000;
+    const start = Date.now();
+
+    for (let i = 0; i < maxAttempts && Date.now() - start < timeout; i++) {
+      const current = await this.resolve();
+      if (current?.focused) return;
+
+      // If the element exists but isn't focused, try navigating toward it
+      if (current) {
+        await this.device.press(direction);
+        await sleep(150);
+        continue;
+      }
+
+      // Element not in tree yet, wait a bit
+      await sleep(200);
+    }
+
+    // Final check
+    const final = await this.resolve();
+    if (final?.focused) return;
+
+    throw new Error(
+      `Could not focus ${this.fullSelector} after ${maxAttempts} attempts`
+    );
+  }
+
+  private async scrollUntilDisplayed(
+    direction: Direction,
+    maxAttempts = 20,
+    timeout = 15000,
+  ): Promise<void> {
+    const start = Date.now();
+    for (let i = 0; i < maxAttempts && Date.now() - start < timeout; i++) {
+      if (await this.isDisplayed()) return;
+      await this.device.press(direction);
+      await sleep(300);
+    }
   }
 
   async waitForDisplayed(options?: WaitOptions): Promise<void> {
