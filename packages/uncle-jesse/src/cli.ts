@@ -15,7 +15,7 @@ export function createCli(): Command {
     .command('test')
     .description('Run TV E2E tests')
     .option('-c, --config <path>', 'Path to vitest config file')
-    .option('--reporter <type>', 'Reporter: console, junit', 'console')
+    .option('--reporter <type>', 'Reporter: console, junit, ctrf', 'console')
     .option('-w, --watch', 'Run in watch mode')
     .action(runTests);
 

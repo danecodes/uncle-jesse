@@ -31,7 +31,8 @@
     "@danecodes/uncle-jesse-roku": "workspace:*",
     "@danecodes/uncle-jesse-test": "workspace:*",
     "chalk": "^5.4.0",
-    "commander": "^13.0.0"
+    "commander": "^13.0.0",
+    "ctrf": "0.2.0"
   },
   "engines": {
     "node": ">=20"

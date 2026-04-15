@@ -240,12 +240,35 @@ const authLogs = tv.logs.search('authentication');
 tv.stopLogCapture();
 ```
 
+## CTRF Reporting
+
+Generate [CTRF](https://ctrf.io) (Common Test Reporting Format) reports for integration with Databricks, CI dashboards, and cross-team test analytics.
+
+```typescript
+import { CtrfReporter } from 'uncle-jesse';
+
+const reporter = new CtrfReporter({
+  deviceName: 'Roku Ultra',
+  appName: 'MyApp',
+  appVersion: '2.0.0',
+  buildId: process.env.BUILD_ID,
+  testEnvironment: 'staging',
+  outputDir: './test-results',
+});
+
+// Feed test results to the reporter, then save
+reporter.save(); // writes test-results/ctrf-report.json
+```
+
+The report includes device name, environment metadata, focusPath step failures, and maps to the CTRF schema for Parquet ingestion.
+
 ## CLI
 
 ```bash
 # Run tests
 npx uncle-jesse test
 npx uncle-jesse test --reporter junit
+npx uncle-jesse test --reporter ctrf
 npx uncle-jesse test --watch
 
 # Discover devices on the network
