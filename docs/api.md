@@ -89,7 +89,11 @@ class LiveElement {
 
   // Actions
   select(options?: { ifNotDisplayedNavigate?: Direction }): Promise<void>;
-  focus(options?: { direction?: Direction; maxAttempts?: number; timeout?: number }): Promise<void>;
+  focus(options?: { maxAttempts?: number; timeout?: number }): Promise<void>;
+  clear(): Promise<void>;
+
+  // Identity
+  isStale(): Promise<boolean>;
 
   // Wait helpers
   waitForDisplayed(options?: WaitOptions): Promise<void>;
@@ -214,14 +218,20 @@ export default defineConfig({
 
 ### RegistryState
 
-Builds launch params for the `odc_registry` convention used by apps that support registry injection on launch.
+Builds and applies registry state via launch params or direct ODC writes.
 
 ```typescript
 class RegistryState {
   set(section: string, key: string, value: string): this;
   merge(other: RegistryData): this;
   toJSON(): RegistryData;
+
+  // Via ECP launch params (app must handle odc_registry param)
   toLaunchParams(options?: { clearRegistry?: boolean }): Record<string, string>;
+
+  // Via roku-odc direct registry access (requires @danecodes/roku-odc)
+  applyViaOdc(odc: OdcClient, options?: { clearFirst?: boolean }): Promise<void>;
+  static readFromDevice(odc: OdcClient): Promise<RegistryState>;
 
   static skipOnboarding(): RegistryState;
   static authenticated(): RegistryState;
@@ -263,6 +273,9 @@ class RokuAdapter implements TVDevice {
 
   // All TVDevice methods, plus Roku-specific:
   readConsole(options?: { duration?: number; filter?: string }): Promise<string>;
+  getMediaPlayerState(): Promise<MediaPlayerInfo>;
+  waitForPlayback(options?: { timeout?: number }): Promise<MediaPlayerInfo>;
+  waitForPlaybackPosition(positionMs: number, options?: { timeout?: number }): Promise<MediaPlayerInfo>;
 
   // Note: home() waits for the current app to exit before returning.
   // launchApp() and deepLink() wait for the target app to become active.

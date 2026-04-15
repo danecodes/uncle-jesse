@@ -159,9 +159,10 @@ afterEach(async () => {
 await element.focus();
 await element.select({ ifNotDisplayedNavigate: Direction.DOWN });
 
-// After (same behavior)
+// After
+// focus() uses element bounds to determine which direction to navigate.
+// It also focuses the parent container first if needed.
 await element.focus();
-await element.focus({ direction: 'down' });
 await element.select({ ifNotDisplayedNavigate: 'down' });
 ```
 
