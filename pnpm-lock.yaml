@@ -96,6 +96,9 @@ importers:
       '@danecodes/roku-ecp':
         specifier: ^0.4.4
         version: 0.4.4
+      '@danecodes/roku-log':
+        specifier: 0.1.0
+        version: 0.1.0
       '@danecodes/uncle-jesse-core':
         specifier: workspace:*
         version: link:../core
@@ -202,6 +205,10 @@ packages:
   '@danecodes/roku-ecp@0.4.4':
     resolution: {integrity: sha512-eAmG2XBoqT7yYdMP+PmfSgz5z6+6J3sEgQLt5ousi/BoA5lLty5Uq6wxNV4olUBcMsh0BHcIzPogOaU7hnesew==}
     engines: {node: '>=18'}
+
+  '@danecodes/roku-log@0.1.0':
+    resolution: {integrity: sha512-E/cYUKdEirFVf+VleJTM9xJFgWc0apj1NsAsKFw0cBWZfVCtQ6sC+SKDnIrNrtd+qBZ/dFB1XosWBUob+JtLfQ==}
+    engines: {node: '>=22'}
 
   '@danecodes/roku-odc@0.1.0':
     resolution: {integrity: sha512-vr1zov2MbXGjtYZf5aI+wHb9BLaSdkbxSVVF2fYcebJ81YPP57e4QBdydAE8HBx2uMSvtwM5Y0tXdkfSo/k/kQ==}
@@ -1698,6 +1705,8 @@ snapshots:
     dependencies:
       fast-xml-parser: 5.5.11
       yazl: 3.3.1
+
+  '@danecodes/roku-log@0.1.0': {}
 
   '@danecodes/roku-odc@0.1.0': {}
 

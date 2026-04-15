@@ -209,6 +209,37 @@ import { setScreenshotOnFailure } from '@danecodes/uncle-jesse-test';
 setScreenshotOnFailure(true, './test-results');
 ```
 
+## Log Capture
+
+Stream and parse BrightScript console output during test runs using [@danecodes/roku-log](https://github.com/danecodes/roku-log). Captures errors, crashes, backtraces, and performance beacons as structured data.
+
+```typescript
+const tv = new RokuAdapter({ name: 'test', ip: '192.168.1.100' });
+await tv.connect();
+await tv.startLogCapture();
+
+await tv.launchApp('dev');
+// ... run tests ...
+
+// Check for errors during the test
+if (tv.hasErrors()) {
+  console.log('Errors:', tv.logs.errors);
+}
+if (tv.hasCrashes()) {
+  console.log('Crashes:', tv.logs.crashes);
+}
+
+// Get a summary
+const summary = tv.getLogSummary();
+console.log(`${summary.errorCount} errors, launch time: ${summary.launchTime}ms`);
+
+// Filter and search logs
+const networkErrors = tv.logs.filter({ file: 'NetworkTask.brs' });
+const authLogs = tv.logs.search('authentication');
+
+tv.stopLogCapture();
+```
+
 ## CLI
 
 ```bash

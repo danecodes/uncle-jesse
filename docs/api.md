@@ -277,6 +277,14 @@ class RokuAdapter implements TVDevice {
   waitForPlayback(options?: { timeout?: number }): Promise<MediaPlayerInfo>;
   waitForPlaybackPosition(positionMs: number, options?: { timeout?: number }): Promise<MediaPlayerInfo>;
 
+  // Structured log capture via @danecodes/roku-log
+  get logs(): LogSession;              // current session's parsed log entries
+  startLogCapture(): Promise<void>;    // start streaming from port 8085
+  stopLogCapture(): void;              // stop streaming
+  hasErrors(): boolean;                // any BrightScript errors captured
+  hasCrashes(): boolean;               // any crashes/backtraces captured
+  getLogSummary(): { errorCount: number; crashCount: number; beaconCount: number; launchTime?: number; uniqueErrors: string[] };
+
   // Note: home() waits for the current app to exit before returning.
   // launchApp() and deepLink() wait for the target app to become active.
 }

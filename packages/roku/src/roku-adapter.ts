@@ -1,4 +1,5 @@
 import { EcpClient, type KeyName, parseUiXml, findElement, findElements, findFocused, type UiNode, waitForApp } from '@danecodes/roku-ecp';
+import { LogStream, LogSession, type LogEntry } from '@danecodes/roku-log';
 import {
   type TVDevice,
   type Platform,
@@ -20,6 +21,8 @@ export class RokuAdapter implements TVDevice {
   private client: EcpClient;
   private connected = false;
   private pressDelay: number;
+  private logStream: LogStream | null = null;
+  private _logSession: LogSession = new LogSession();
 
   constructor(options: {
     name: string;
@@ -37,6 +40,10 @@ export class RokuAdapter implements TVDevice {
     });
   }
 
+  get logs(): LogSession {
+    return this._logSession;
+  }
+
   async connect(): Promise<void> {
     try {
       await this.client.queryDeviceInfo();
@@ -47,7 +54,30 @@ export class RokuAdapter implements TVDevice {
   }
 
   async disconnect(): Promise<void> {
+    this.stopLogCapture();
     this.connected = false;
+  }
+
+  async startLogCapture(): Promise<void> {
+    if (this.logStream) return;
+    this._logSession.clear();
+    this.logStream = new LogStream(this.ip);
+    this.logStream.on('entry', (entry: LogEntry) => {
+      this._logSession.add(entry);
+    });
+    try {
+      await this.logStream.connect();
+    } catch {
+      // Debug console might be in use or unavailable
+      this.logStream = null;
+    }
+  }
+
+  stopLogCapture(): void {
+    if (this.logStream) {
+      this.logStream.disconnect();
+      this.logStream = null;
+    }
   }
 
   isConnected(): boolean {
@@ -252,6 +282,18 @@ export class RokuAdapter implements TVDevice {
 
   async readConsole(options?: { duration?: number; filter?: string }): Promise<string> {
     return this.client.readConsole(options);
+  }
+
+  hasErrors(): boolean {
+    return this._logSession.errors.length > 0;
+  }
+
+  hasCrashes(): boolean {
+    return this._logSession.crashes.length > 0;
+  }
+
+  getLogSummary() {
+    return this._logSession.summary();
   }
 
   async getMediaPlayerState(): Promise<MediaPlayerInfo> {
