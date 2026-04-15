@@ -1,4 +1,8 @@
-import { EcpClient, type KeyName, parseUiXml, findElement, findElements, findFocused, type UiNode, waitForApp } from '@danecodes/roku-ecp';
+import {
+  EcpClient, type KeyName, parseUiXml, findElement, findElements, type UiNode,
+  waitForApp, waitForElement as ecpWaitForElement, waitForFocus as ecpWaitForFocus,
+  waitFor, waitForStable as ecpWaitForStable,
+} from '@danecodes/roku-ecp';
 import { LogStream, LogSession, type LogEntry } from '@danecodes/roku-log';
 import {
   type TVDevice,
@@ -176,9 +180,13 @@ export class RokuAdapter implements TVDevice {
     }));
   }
 
-  private async getRawUITree(): Promise<UiNode> {
+  private getTreeSource = async (): Promise<UiNode> => {
     const xml = await this.client.queryAppUi();
     return parseUiXml(xml);
+  };
+
+  private async getRawUITree(): Promise<UiNode> {
+    return this.getTreeSource();
   }
 
   private uiNodeToElement(node: UiNode, parent: UIElement | null = null): UIElement {
@@ -249,53 +257,21 @@ export class RokuAdapter implements TVDevice {
   }
 
   async waitForElement(selector: string, options?: WaitOptions): Promise<UIElement> {
-    const timeout = options?.timeout ?? 10000;
-    const interval = options?.interval ?? 200;
-    const start = Date.now();
-    let lastTree: UIElement | undefined;
-
-    while (Date.now() - start < timeout) {
-      const raw = await this.getRawUITree();
-      lastTree = this.uiNodeToElement(raw);
-      const found = findElement(raw, selector);
-      if (found) return this.uiNodeToElement(found);
-      await new Promise((resolve) => setTimeout(resolve, interval));
-    }
-
-    throw new TimeoutError(selector, Date.now() - start, lastTree);
+    const node = await ecpWaitForElement(this.getTreeSource, selector, options);
+    return this.uiNodeToElement(node);
   }
 
   async waitForFocus(selector: string, options?: WaitOptions): Promise<UIElement> {
-    const timeout = options?.timeout ?? 10000;
-    const interval = options?.interval ?? 200;
-    const start = Date.now();
-    let lastTree: UIElement | undefined;
-
-    while (Date.now() - start < timeout) {
-      const raw = await this.getRawUITree();
-      lastTree = this.uiNodeToElement(raw);
-      const found = findElement(raw, selector);
-      if (found && found.attrs['focused'] === 'true') {
-        return this.uiNodeToElement(found);
-      }
-      await new Promise((resolve) => setTimeout(resolve, interval));
-    }
-
-    throw new TimeoutError(selector, Date.now() - start, lastTree);
+    const node = await ecpWaitForFocus(this.getTreeSource, selector, options);
+    return this.uiNodeToElement(node);
   }
 
   async waitForCondition<T>(predicate: () => Promise<T | null | false>, options?: WaitOptions): Promise<T> {
-    const timeout = options?.timeout ?? 10000;
-    const interval = options?.interval ?? 200;
-    const start = Date.now();
-
-    while (Date.now() - start < timeout) {
+    return waitFor(async () => {
       const result = await predicate();
-      if (result !== null && result !== false) return result;
-      await new Promise((resolve) => setTimeout(resolve, interval));
-    }
-
-    throw new TimeoutError('waitForCondition', Date.now() - start);
+      if (result === null || result === false) return undefined;
+      return result;
+    }, { ...options, label: 'waitForCondition' });
   }
 
   async getPageSourceXml(): Promise<string> {
@@ -303,15 +279,20 @@ export class RokuAdapter implements TVDevice {
   }
 
   async waitForStable(options?: WaitForStableOptions): Promise<void> {
+    const hasCustomChecks = options?.indicators?.length || options?.trackedAttributes?.length;
+
+    if (!hasCustomChecks) {
+      // No app-specific config: delegate to roku-ecp's tree-level stability check
+      await ecpWaitForStable(this.getTreeSource, options);
+      return;
+    }
+
+    // App-specific stability: user provided indicators or tracked attributes
     const timeout = options?.timeout ?? 10000;
     const interval = options?.interval ?? 100;
     const settleCount = options?.settleCount ?? 2;
-    const indicators = options?.indicators ?? ['BusySpinner'];
-    const trackedAttrs = options?.trackedAttributes ?? [
-      'bounds', 'extends', 'focused', 'focusItem', 'id', 'index',
-      'itemFocused', 'loadStatus', 'name', 'opacity', 'rowItemFocused',
-      'text', 'uiElementId', 'visible',
-    ];
+    const indicators = options.indicators ?? [];
+    const trackedAttrs = options.trackedAttributes;
 
     const start = Date.now();
     let stableCount = 0;
@@ -320,26 +301,16 @@ export class RokuAdapter implements TVDevice {
     while (Date.now() - start < timeout) {
       const xml = await this.client.queryAppUi();
 
-      // Check for loading indicators
+      // Check for user-specified loading indicators
       let hasIndicator = false;
-      for (const indicator of indicators) {
-        if (xml.includes(`<${indicator}`) && !xml.includes(`visible="false"`)) {
-          // More precise check: find the indicator and verify it's visible
-          const tree = parseUiXml(xml);
+      if (indicators.length > 0) {
+        const tree = parseUiXml(xml);
+        for (const indicator of indicators) {
           const found = findElement(tree, indicator);
           if (found && found.attrs['visible'] !== 'false') {
             hasIndicator = true;
             break;
           }
-        }
-      }
-
-      // Also check for loading posters
-      if (xml.includes('loadStatus="1"')) {
-        const tree = parseUiXml(xml);
-        const loading = findElements(tree, 'Poster[loadStatus="1"]');
-        if (loading.some((p) => p.attrs['visible'] !== 'false')) {
-          hasIndicator = true;
         }
       }
 
@@ -350,8 +321,7 @@ export class RokuAdapter implements TVDevice {
         continue;
       }
 
-      // Strip to tracked attributes only for comparison
-      const snapshot = stripToTrackedAttrs(xml, trackedAttrs);
+      const snapshot = trackedAttrs ? stripToTrackedAttrs(xml, trackedAttrs) : xml;
 
       if (snapshot === previousSnapshot) {
         stableCount++;

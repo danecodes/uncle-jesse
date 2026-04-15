@@ -111,9 +111,9 @@ class FocusPathBuilder {
       const step = this.steps[i];
       await this.device.press(step.key);
 
-      // Wait for the UI to stabilize after the key press.
-      // Poll until two consecutive queries return the same focused element.
-      let focused = await waitForFocusStable(this.device);
+      // Wait for the UI to stabilize after the key press
+      await this.device.waitForStable();
+      let focused = await this.device.getFocusedElement();
       let passed = matchesFocused(focused, step.expectedSelector);
 
       const actualDesc = describeFocused(focused);
@@ -180,24 +180,4 @@ class FocusPathExpect {
 
 export function focusPath(device: TVDevice, options?: FocusPathOptions): FocusPathBuilder {
   return new FocusPathBuilder(device, options);
-}
-
-async function waitForFocusStable(
-  device: TVDevice,
-  timeout = 3000,
-  interval = 150,
-): Promise<{ id?: string; tag: string; getAttribute(n: string): string | undefined } | null> {
-  let prev = await device.getFocusedElement();
-  const start = Date.now();
-
-  while (Date.now() - start < timeout) {
-    await new Promise((r) => setTimeout(r, interval));
-    const current = await device.getFocusedElement();
-    const prevId = prev?.id ?? prev?.getAttribute('title') ?? prev?.tag;
-    const currId = current?.id ?? current?.getAttribute('title') ?? current?.tag;
-    if (prevId === currId) return current;
-    prev = current;
-  }
-
-  return prev;
 }
