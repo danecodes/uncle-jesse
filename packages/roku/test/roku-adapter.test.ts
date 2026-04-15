@@ -119,6 +119,7 @@ describe('RokuAdapter', () => {
     it('launches an app with params', async () => {
       const mock = mockClient;
       mock.launch.mockResolvedValue(undefined);
+      mock.queryActiveApp.mockResolvedValue({ id: '12345', name: 'Test', type: 'appl', version: '1.0' });
 
       await adapter.launchApp('12345', { contentId: 'abc' });
       expect(mock.launch).toHaveBeenCalledWith('12345', { contentId: 'abc' });

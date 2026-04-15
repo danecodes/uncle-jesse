@@ -285,8 +285,19 @@ class RokuAdapter implements TVDevice {
   hasCrashes(): boolean;               // any crashes/backtraces captured
   getLogSummary(): { errorCount: number; crashCount: number; beaconCount: number; launchTime?: number; uniqueErrors: string[] };
 
+  // Log assertions (throw on failure)
+  expectNoErrors(): void;
+  expectNoCrashes(): void;
+  expectBeacon(event: string, options?: { within?: number }): void;
+
+  // Media player assertions
+  toBePlayingVideo(options?: { timeout?: number }): Promise<void>;
+  toHavePlaybackPosition(minMs: number, maxMs?: number, options?: { timeout?: number }): Promise<void>;
+  toHaveDuration(minMs: number, options?: { timeout?: number }): Promise<void>;
+
   // Note: home() waits for the current app to exit before returning.
   // launchApp() and deepLink() wait for the target app to become active.
+  // launchApp() dismisses the screensaver if the device was idle.
 }
 ```
 

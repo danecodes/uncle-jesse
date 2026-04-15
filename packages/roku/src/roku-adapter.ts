@@ -128,6 +128,20 @@ export class RokuAdapter implements TVDevice {
 
   async launchApp(appId: string, params?: Record<string, string>): Promise<void> {
     await this.client.launch(appId, params);
+
+    // Dismiss screensaver if the device was idle
+    const start = Date.now();
+    while (Date.now() - start < 15000) {
+      const app = await this.client.queryActiveApp();
+      if (app.id === appId) break;
+      if (app.type === 'screensaver' || app.name?.includes('Screensaver')) {
+        await this.client.keypress('Enter');
+        await new Promise((r) => setTimeout(r, 1000));
+        continue;
+      }
+      await new Promise((r) => setTimeout(r, 500));
+    }
+
     await waitForApp(this.client, appId, { timeout: 15000 });
   }
 
@@ -343,6 +357,76 @@ export class RokuAdapter implements TVDevice {
     }
 
     throw new Error(`Playback did not reach ${positionMs}ms within ${timeout}ms`);
+  }
+
+  // Media player assertions
+  async toBePlayingVideo(options?: { timeout?: number }): Promise<void> {
+    const state = await this.waitForPlayback(options);
+    if (state.isError) {
+      throw new Error(`Expected video to be playing but got error state`);
+    }
+  }
+
+  async toHavePlaybackPosition(minMs: number, maxMs?: number, options?: { timeout?: number }): Promise<void> {
+    const state = await this.waitForPlaybackPosition(minMs, options);
+    if (maxMs !== undefined && state.position !== undefined && state.position > maxMs) {
+      throw new Error(
+        `Expected playback position between ${minMs}ms and ${maxMs}ms, got ${state.position}ms`
+      );
+    }
+  }
+
+  async toHaveDuration(minMs: number, options?: { timeout?: number }): Promise<void> {
+    const timeout = options?.timeout ?? 15000;
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      const state = await this.getMediaPlayerState();
+      if (state.duration !== undefined && state.duration >= minMs) return;
+      await new Promise((r) => setTimeout(r, 500));
+    }
+    const state = await this.getMediaPlayerState();
+    throw new Error(
+      `Expected duration >= ${minMs}ms, got ${state.duration ?? 'unknown'}ms`
+    );
+  }
+
+  // Log assertions
+  expectNoErrors(): void {
+    const errors = this._logSession.errors;
+    if (errors.length > 0) {
+      const messages = errors.map((e) => `${e.errorClass} at ${e.source.file}:${e.source.line}`);
+      throw new Error(
+        `Expected no BrightScript errors but found ${errors.length}:\n${messages.join('\n')}`
+      );
+    }
+  }
+
+  expectNoCrashes(): void {
+    const crashes = this._logSession.crashes;
+    if (crashes.length > 0) {
+      const messages = crashes.map((c) => {
+        const frames = c.frames.map((f) => `  ${f.function} (${f.file}:${f.line})`).join('\n');
+        return `Crash:\n${frames}`;
+      });
+      throw new Error(
+        `Expected no crashes but found ${crashes.length}:\n${messages.join('\n')}`
+      );
+    }
+  }
+
+  expectBeacon(event: string, options?: { within?: number }): void {
+    const beacons = this._logSession.beacons.filter((b) => b.event === event);
+    if (beacons.length === 0) {
+      throw new Error(`Expected beacon "${event}" but none was captured`);
+    }
+    if (options?.within !== undefined) {
+      const beacon = beacons[0];
+      if (beacon.duration !== undefined && beacon.duration > options.within) {
+        throw new Error(
+          `Beacon "${event}" took ${beacon.duration}ms, expected within ${options.within}ms`
+        );
+      }
+    }
   }
 
   async screenshot(): Promise<Buffer> {
