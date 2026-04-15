@@ -180,6 +180,25 @@ export class RokuAdapter implements TVDevice {
     }));
   }
 
+  async getAppState(appId: string): Promise<'not-running' | 'foreground' | 'not-installed'> {
+    const active = await this.client.queryActiveApp();
+    if (active.id === appId) return 'foreground';
+    const installed = await this.client.queryInstalledApps();
+    const found = installed.some((a) => a.id === appId);
+    return found ? 'not-running' : 'not-installed';
+  }
+
+  async waitForAppState(
+    appId: string,
+    state: 'not-running' | 'foreground' | 'not-installed',
+    options?: WaitOptions,
+  ): Promise<void> {
+    await waitFor(async () => {
+      const current = await this.getAppState(appId);
+      return current === state ? true : undefined;
+    }, { ...options, label: `waitForAppState(${appId}, ${state})` });
+  }
+
   private getTreeSource = async (): Promise<UiNode> => {
     const xml = await this.client.queryAppUi();
     return parseUiXml(xml);
