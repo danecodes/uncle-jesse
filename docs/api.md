@@ -324,6 +324,40 @@ class RokuDiscovery {
 
 ## @danecodes/uncle-jesse-test
 
+### Vitest Plugin
+
+Full lifecycle management for TV E2E tests. Handles device setup, log capture, screenshot on failure, artifact naming, and cleanup.
+
+```typescript
+// vitest.config.ts
+import { uncleJessePlugin } from '@danecodes/uncle-jesse-test/vitest-plugin';
+
+export default defineConfig({
+  plugins: [uncleJessePlugin({
+    screenshotOnFailure: true,    // default: true
+    logCapture: true,             // default: false
+    artifactDir: 'test-results',  // default: ./test-results
+    logDir: 'test-logs',          // default: ./test-logs
+    onTestStart: async (device) => { /* custom setup */ },
+    onTestFinished: async (device, result) => { /* custom teardown */ },
+  })],
+});
+```
+
+Configuration functions for setup files:
+
+```typescript
+import { setDeviceFactory, setScreenshotOnFailure, setLogCapture, setTestHooks } from '@danecodes/uncle-jesse-test';
+
+setDeviceFactory(async () => new RokuAdapter({ ... }));
+setScreenshotOnFailure(true, './test-results');
+setLogCapture(true, './test-logs');
+setTestHooks({
+  onTestStart: async (device) => { /* ... */ },
+  onTestFinished: async (device, result) => { /* ... */ },
+});
+```
+
 ### focusPath
 
 ```typescript

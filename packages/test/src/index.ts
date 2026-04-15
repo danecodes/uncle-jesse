@@ -1,7 +1,7 @@
 export { focusPath } from './focus-path.js';
 export type { FocusPathResult, FocusPathFailure, FocusPathOptions } from './focus-path.js';
 export { TVPage } from './tv-page.js';
-export { test, setDeviceFactory, setScreenshotOnFailure } from './fixture.js';
+export { test, setDeviceFactory, setScreenshotOnFailure, setLogCapture, setTestHooks } from './fixture.js';
 export type { TVFixtures } from './fixture.js';
 export { tvMatchers } from './matchers.js';
 export type { TVMatchers } from './matchers.js';
