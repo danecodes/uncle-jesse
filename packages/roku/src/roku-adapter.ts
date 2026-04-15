@@ -130,16 +130,11 @@ export class RokuAdapter implements TVDevice {
     await this.client.launch(appId, params);
 
     // Dismiss screensaver if the device was idle
-    const start = Date.now();
-    while (Date.now() - start < 15000) {
-      const app = await this.client.queryActiveApp();
-      if (app.id === appId) break;
-      if (app.type === 'screensaver' || app.name?.includes('Screensaver')) {
-        await this.client.keypress('Enter');
-        await new Promise((r) => setTimeout(r, 1000));
-        continue;
-      }
-      await new Promise((r) => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, 500));
+    const app = await this.client.queryActiveApp();
+    if (app.type === 'screensaver' || app.name?.includes('Screensaver')) {
+      await this.client.keypress('Enter');
+      await new Promise((r) => setTimeout(r, 1000));
     }
 
     await waitForApp(this.client, appId, { timeout: 15000 });
