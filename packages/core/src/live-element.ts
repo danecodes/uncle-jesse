@@ -289,6 +289,53 @@ export class LiveElement {
   async toExist(options?: WaitOptions): Promise<void> {
     await this.waitForExisting(options);
   }
+
+  async toHaveAttribute(
+    name: string,
+    expected: string | RegExp,
+    options?: WaitOptions,
+  ): Promise<void> {
+    const timeout = options?.timeout ?? 10000;
+    const interval = options?.interval ?? 200;
+    const start = Date.now();
+
+    while (Date.now() - start < timeout) {
+      const value = await this.getAttribute(name);
+      if (value !== undefined) {
+        if (typeof expected === 'string' && value === expected) return;
+        if (expected instanceof RegExp && expected.test(value)) return;
+      }
+      await sleep(interval);
+    }
+
+    const actual = await this.getAttribute(name);
+    throw new Error(
+      `Expected ${this.fullSelector} to have attribute "${name}" matching "${expected}", but got "${actual ?? '<missing>'}"`
+    );
+  }
+
+  async toNotHaveAttribute(
+    name: string,
+    expected: string | RegExp,
+    options?: WaitOptions,
+  ): Promise<void> {
+    const timeout = options?.timeout ?? 10000;
+    const interval = options?.interval ?? 200;
+    const start = Date.now();
+
+    while (Date.now() - start < timeout) {
+      const value = await this.getAttribute(name);
+      if (value === undefined) return;
+      if (typeof expected === 'string' && value !== expected) return;
+      if (expected instanceof RegExp && !expected.test(value)) return;
+      await sleep(interval);
+    }
+
+    const actual = await this.getAttribute(name);
+    throw new Error(
+      `Expected ${this.fullSelector} to not have attribute "${name}" matching "${expected}", but got "${actual}"`
+    );
+  }
 }
 
 export class ElementCollection {
@@ -315,6 +362,84 @@ export class ElementCollection {
 
   get length(): Promise<number> {
     return this.device.$$(this.fullSelector).then((els) => els.length);
+  }
+
+  async toHaveLength(expected: number, options?: WaitOptions): Promise<void> {
+    const timeout = options?.timeout ?? 10000;
+    const interval = options?.interval ?? 200;
+    const start = Date.now();
+
+    while (Date.now() - start < timeout) {
+      const count = await this.length;
+      if (count === expected) return;
+      await sleep(interval);
+    }
+
+    const actual = await this.length;
+    throw new Error(
+      `Expected ${this.fullSelector} to have length ${expected}, but got ${actual}`
+    );
+  }
+
+  async toHaveText(expected: string[], options?: WaitOptions): Promise<void> {
+    const timeout = options?.timeout ?? 10000;
+    const interval = options?.interval ?? 200;
+    const start = Date.now();
+
+    while (Date.now() - start < timeout) {
+      const texts = await this.map(async (el) => el.getText());
+      const sorted = [...texts].sort();
+      const expectedSorted = [...expected].sort();
+      if (JSON.stringify(sorted) === JSON.stringify(expectedSorted)) return;
+      await sleep(interval);
+    }
+
+    const actual = await this.map(async (el) => el.getText());
+    throw new Error(
+      `Expected ${this.fullSelector} texts to match ${JSON.stringify(expected)}, but got ${JSON.stringify(actual)}`
+    );
+  }
+
+  async toHaveTextInOrder(expected: (string | RegExp)[], options?: WaitOptions): Promise<void> {
+    const timeout = options?.timeout ?? 10000;
+    const interval = options?.interval ?? 200;
+    const start = Date.now();
+
+    while (Date.now() - start < timeout) {
+      const texts = await this.map(async (el) => el.getText());
+      if (texts.length === expected.length) {
+        const matches = expected.every((exp, i) => {
+          if (typeof exp === 'string') return texts[i] === exp;
+          return exp.test(texts[i]);
+        });
+        if (matches) return;
+      }
+      await sleep(interval);
+    }
+
+    const actual = await this.map(async (el) => el.getText());
+    throw new Error(
+      `Expected ${this.fullSelector} texts in order ${JSON.stringify(expected.map(String))}, but got ${JSON.stringify(actual)}`
+    );
+  }
+
+  async map<R>(fn: (el: LiveElement, i: number) => Promise<R>): Promise<R[]> {
+    const count = await this.length;
+    const results: R[] = [];
+    for (let i = 0; i < count; i++) {
+      results.push(await fn(this.get(i), i));
+    }
+    return results;
+  }
+
+  async filter(fn: (el: LiveElement, i: number) => Promise<boolean>): Promise<LiveElement[]> {
+    const count = await this.length;
+    const results: LiveElement[] = [];
+    for (let i = 0; i < count; i++) {
+      const el = this.get(i);
+      if (await fn(el, i)) results.push(el);
+    }
+    return results;
   }
 }
 
@@ -390,6 +515,31 @@ export class BaseComponent {
 
   get driver() {
     return this.device;
+  }
+
+  async waitUntil(
+    predicate: () => Promise<boolean>,
+    options?: { timeout?: number; interval?: number; timeoutMsg?: string },
+  ): Promise<void> {
+    const timeout = options?.timeout ?? 10000;
+    const interval = options?.interval ?? 200;
+    const start = Date.now();
+
+    while (Date.now() - start < timeout) {
+      if (await predicate()) return;
+      await sleep(interval);
+    }
+
+    throw new Error(
+      options?.timeoutMsg ?? `waitUntil timed out after ${timeout}ms`
+    );
+  }
+
+  async waitForCondition<T>(
+    predicate: () => Promise<T | null | false>,
+    options?: WaitOptions,
+  ): Promise<T> {
+    return this.device.waitForCondition(predicate, options);
   }
 }
 

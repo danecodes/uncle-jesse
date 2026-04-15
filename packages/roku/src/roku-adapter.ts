@@ -6,6 +6,7 @@ import {
   type RemoteKey,
   type Direction,
   type WaitOptions,
+  type WaitForStableOptions,
   type AppInfo,
   UIElement,
   DeviceConnectionError,
@@ -100,6 +101,14 @@ export class RokuAdapter implements TVDevice {
 
   async type(text: string): Promise<void> {
     await this.client.type(text);
+  }
+
+  async sendInput(params: Record<string, string | number>): Promise<void> {
+    const stringParams: Record<string, string> = {};
+    for (const [key, value] of Object.entries(params)) {
+      stringParams[key] = String(value);
+    }
+    await this.client.input(stringParams);
   }
 
   async navigate(direction: Direction, steps = 1): Promise<void> {
@@ -289,6 +298,75 @@ export class RokuAdapter implements TVDevice {
     throw new TimeoutError('waitForCondition', Date.now() - start);
   }
 
+  async getPageSourceXml(): Promise<string> {
+    return this.client.queryAppUi();
+  }
+
+  async waitForStable(options?: WaitForStableOptions): Promise<void> {
+    const timeout = options?.timeout ?? 10000;
+    const interval = options?.interval ?? 100;
+    const settleCount = options?.settleCount ?? 2;
+    const indicators = options?.indicators ?? ['BusySpinner'];
+    const trackedAttrs = options?.trackedAttributes ?? [
+      'bounds', 'extends', 'focused', 'focusItem', 'id', 'index',
+      'itemFocused', 'loadStatus', 'name', 'opacity', 'rowItemFocused',
+      'text', 'uiElementId', 'visible',
+    ];
+
+    const start = Date.now();
+    let stableCount = 0;
+    let previousSnapshot = '';
+
+    while (Date.now() - start < timeout) {
+      const xml = await this.client.queryAppUi();
+
+      // Check for loading indicators
+      let hasIndicator = false;
+      for (const indicator of indicators) {
+        if (xml.includes(`<${indicator}`) && !xml.includes(`visible="false"`)) {
+          // More precise check: find the indicator and verify it's visible
+          const tree = parseUiXml(xml);
+          const found = findElement(tree, indicator);
+          if (found && found.attrs['visible'] !== 'false') {
+            hasIndicator = true;
+            break;
+          }
+        }
+      }
+
+      // Also check for loading posters
+      if (xml.includes('loadStatus="1"')) {
+        const tree = parseUiXml(xml);
+        const loading = findElements(tree, 'Poster[loadStatus="1"]');
+        if (loading.some((p) => p.attrs['visible'] !== 'false')) {
+          hasIndicator = true;
+        }
+      }
+
+      if (hasIndicator) {
+        stableCount = 0;
+        previousSnapshot = '';
+        await new Promise((r) => setTimeout(r, interval));
+        continue;
+      }
+
+      // Strip to tracked attributes only for comparison
+      const snapshot = stripToTrackedAttrs(xml, trackedAttrs);
+
+      if (snapshot === previousSnapshot) {
+        stableCount++;
+        if (stableCount >= settleCount) return;
+      } else {
+        stableCount = 1;
+      }
+
+      previousSnapshot = snapshot;
+      await new Promise((r) => setTimeout(r, interval));
+    }
+
+    throw new TimeoutError('waitForStable', Date.now() - start);
+  }
+
   async readConsole(options?: { duration?: number; filter?: string }): Promise<string> {
     return this.client.readConsole(options);
   }
@@ -445,6 +523,16 @@ export interface MediaPlayerInfo {
     id: string;
     name: string;
   };
+}
+
+function stripToTrackedAttrs(xml: string, trackedAttrs: string[]): string {
+  // Replace all attribute values that aren't in the tracked list with empty strings.
+  // This gives us a comparable string that only reflects the attributes we care about.
+  const attrPattern = /\s(\w+)="([^"]*)"/g;
+  return xml.replace(attrPattern, (match, name) => {
+    if (trackedAttrs.includes(name)) return match;
+    return '';
+  });
 }
 
 function parseTimeMs(value: string): number {

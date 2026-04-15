@@ -1,6 +1,14 @@
 import type { Platform, RemoteKey, Direction, WaitOptions, AppInfo } from './types.js';
 import type { UIElement } from './ui-element.js';
 
+export interface WaitForStableOptions {
+  timeout?: number;
+  interval?: number;
+  indicators?: string[];
+  trackedAttributes?: string[];
+  settleCount?: number;
+}
+
 export interface TVDevice {
   readonly platform: Platform;
   readonly name: string;
@@ -13,6 +21,7 @@ export interface TVDevice {
   press(key: RemoteKey, options?: { times?: number; delay?: number }): Promise<void>;
   longPress(key: RemoteKey, duration?: number): Promise<void>;
   type(text: string): Promise<void>;
+  sendInput(params: Record<string, string | number>): Promise<void>;
 
   navigate(direction: Direction, steps?: number): Promise<void>;
   select(): Promise<void>;
@@ -31,6 +40,7 @@ export interface TVDevice {
   waitForElement(selector: string, options?: WaitOptions): Promise<UIElement>;
   waitForFocus(selector: string, options?: WaitOptions): Promise<UIElement>;
   waitForCondition<T>(predicate: () => Promise<T | null | false>, options?: WaitOptions): Promise<T>;
+  waitForStable(options?: WaitForStableOptions): Promise<void>;
 
   deepLink(channelId: string, contentId: string, mediaType?: string): Promise<void>;
   screenshot(): Promise<Buffer>;
