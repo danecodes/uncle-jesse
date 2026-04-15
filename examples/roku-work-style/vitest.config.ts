@@ -4,6 +4,7 @@ import path from 'node:path';
 export default defineConfig({
   test: {
     include: [path.resolve(import.meta.dirname, '*.test.ts')],
+    globalSetup: [path.resolve(import.meta.dirname, 'global-setup.ts')],
     testTimeout: 30000,
     hookTimeout: 30000,
     fileParallelism: false,
