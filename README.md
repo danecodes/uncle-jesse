@@ -355,10 +355,17 @@ ECP HTTP API                   port 8060 on the Roku device
 
 | Package | Description |
 |---------|-------------|
-| `@danecodes/uncle-jesse-core` | TVDevice interface, LiveElement, BasePage, BaseComponent, SelectorEngine, config |
-| `@danecodes/uncle-jesse-roku` | Roku adapter wrapping [@danecodes/roku-ecp](https://github.com/danecodes/roku-ecp) |
+| `@danecodes/uncle-jesse-core` | TVDevice, LiveElement, BasePage, BaseComponent, SelectorEngine, RegistryState, DevicePool |
+| `@danecodes/uncle-jesse-roku` | Roku adapter, media player, log capture via [@danecodes/roku-ecp](https://github.com/danecodes/roku-ecp) and [@danecodes/roku-log](https://github.com/danecodes/roku-log) |
 | `@danecodes/uncle-jesse-test` | focusPath, vitest matchers, vitest plugin, replay debugger |
-| `uncle-jesse` | CLI (test, discover, sideload) and reporters |
+| `uncle-jesse` | CLI (test, discover, sideload) and reporters (console, JUnit, CTRF) |
+
+Optional integrations:
+
+| Package | Description |
+|---------|-------------|
+| `@danecodes/roku-odc` | Direct registry read/write and file operations via ODC (port 8061) |
+| `@danecodes/roku-log` | Structured BrightScript log parsing and streaming (included in roku adapter) |
 
 ## Examples
 

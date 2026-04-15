@@ -372,12 +372,38 @@ await saveReplay(timeline, './test-results');
 const html = generateReplayHtml(timeline);
 ```
 
+### CtrfReporter
+
+Generates [CTRF](https://ctrf.io) (Common Test Reporting Format) JSON reports for integration with Databricks, CI dashboards, and cross-team test analytics.
+
+```typescript
+import { CtrfReporter } from 'uncle-jesse';
+
+const reporter = new CtrfReporter({
+  outputDir?: string;          // default: ./test-results
+  outputFile?: string;         // default: ctrf-report.json
+  deviceName?: string;         // appears on each test result
+  appName?: string;            // environment metadata
+  appVersion?: string;
+  buildId?: string;
+  testEnvironment?: string;
+});
+
+// Feed results, then save
+reporter.save();               // returns the file path
+
+// Or get raw JSON
+const json = reporter.getOutput();
+```
+
+The report includes device name per test, suite hierarchy, focusPath step failures as CTRF steps, and environment metadata. The `errored` status maps to CTRF's `other`.
+
 ## uncle-jesse CLI
 
 ```
 uncle-jesse test [options]        Run TV E2E tests
   -c, --config <path>             Path to vitest config file
-  --reporter <type>               Reporter: console, junit (default: console)
+  --reporter <type>               Reporter: console, junit, ctrf (default: console)
   -w, --watch                     Run in watch mode
 
 uncle-jesse discover [options]    Discover TV devices on the network
