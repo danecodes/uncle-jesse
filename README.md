@@ -55,14 +55,15 @@ const title = homeScreen.$('Label#screenTitle');
 
 // Actions
 await homeScreen.select();
-await homeScreen.focus();                              // navigates via D-pad until focused
-await homeScreen.focus({ direction: 'down' });         // specify scroll direction
+await homeScreen.focus();                              // navigates via D-pad using bounds
+await homeScreen.clear();                              // backspace for each character
 await settingsBtn.select({ ifNotDisplayedNavigate: 'down' }); // scroll until visible, then select
 
 // State queries
 await homeScreen.isDisplayed();    // true if visible attr is not "false"
 await homeScreen.isExisting();     // true if element exists in tree
 await homeScreen.isFocused();      // true if element has focused="true"
+await homeScreen.isStale();        // true if element changed since first query
 await title.getText();             // returns the text attribute value
 await title.getAttribute('color'); // returns any attribute
 
@@ -71,7 +72,63 @@ await homeScreen.toBeDisplayed({ timeout: 10000 });
 await homeScreen.toNotBeDisplayed();
 await homeScreen.toExist();
 await title.toHaveText('Home');
+await title.toHaveAttribute('color', '0xffffffff');
+await title.toHaveAttribute('text', /Episode \d+/);
 await grid.toBeFocused({ timeout: 5000 });
+```
+
+## Element Collections
+
+`$$` returns an `ElementCollection` with assertions, iteration, and indexed access.
+
+```typescript
+const rows = home.$$('RowListItem');
+const count = await rows.length;
+const first = rows.get(0);
+
+// Assertions
+await rows.toHaveLength(3);
+await rows.toHaveText(['Featured', 'Recently Added', 'Popular']);
+await rows.toHaveTextInOrder(['Featured', /Recent/, 'Popular']);
+
+// Iteration
+const titles = await rows.map(async (el) => el.getText());
+const visible = await rows.filter(async (el) => el.isDisplayed());
+```
+
+## Stability and Loading
+
+Wait for the UI to stop changing before proceeding. By default uses roku-ecp's tree-level stability check. Pass app-specific indicators and tracked attributes for custom stability definitions.
+
+```typescript
+// Default: wait until the UI tree stops changing
+await tv.waitForStable();
+
+// App-specific: wait until spinners are gone and tracked attributes settle
+await tv.waitForStable({
+  indicators: ['BusySpinner', 'LoadingIndicator'],
+  trackedAttributes: ['focused', 'text', 'visible', 'opacity'],
+  settleCount: 2,
+  timeout: 15000,
+});
+```
+
+## ECP Input Events
+
+Send arbitrary events to the Roku app via ECP `/input`. Used for media transport controls, voice commands, and custom app events.
+
+```typescript
+await tv.sendInput({ command: 'pause', type: 'transport' });
+await tv.sendInput({ command: 'seek', type: 'transport', direction: 'forward', duration: 30 });
+```
+
+## App State
+
+Query and wait for app lifecycle states.
+
+```typescript
+const state = await tv.getAppState('dev'); // 'foreground' | 'not-running' | 'not-installed'
+await tv.waitForAppState('dev', 'foreground');
 ```
 
 ## Page Objects
