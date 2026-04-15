@@ -1,11 +1,11 @@
-sub Main(args as Dynamic)
+sub Main(args as Dynamic) : odcMain(args)
     screen = CreateObject("roSGScreen")
     port = CreateObject("roMessagePort")
     screen.setMessagePort(port)
 
     scene = screen.CreateScene("MainScene")
 
-    screen.show()
+    screen.show() : createObject("roSGNode", "RokuODC")
 
     if args.mediaType <> invalid and args.mediaType <> ""
         scene.deepLinkMediaType = args.mediaType

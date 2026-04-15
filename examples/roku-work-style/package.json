@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@danecodes/roku-odc": "0.2.3",
     "@danecodes/uncle-jesse-core": "workspace:*",
     "@danecodes/uncle-jesse-roku": "workspace:*",
     "@danecodes/uncle-jesse-test": "workspace:*"
