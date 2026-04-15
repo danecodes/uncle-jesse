@@ -61,16 +61,30 @@ it('waitForCondition resolves when predicate returns truthy', async () => {
   expect(result).toBe(3);
 });
 
-it('console log capture reads device output', async () => {
-  // readConsole is Roku-specific, cast to access it
+it('structured log capture via roku-log', async () => {
   const rokuDevice = device as any;
-  if (typeof rokuDevice.readConsole !== 'function') {
-    throw new Error('readConsole not available on device');
-  }
 
-  const output = await rokuDevice.readConsole({ duration: 1000 });
-  // Should return a string (may be empty if no recent output)
-  expect(typeof output).toBe('string');
+  // Start capturing logs
+  await rokuDevice.startLogCapture();
+
+  // Relaunch app to generate log output (app prints to console on init)
+  await device.home();
+  await device.launchApp('dev');
+  await home.waitForLoaded();
+
+  // Give time for log entries to stream in
+  await new Promise(r => setTimeout(r, 2000));
+
+  // Session should have captured entries
+  const session = rokuDevice.logs;
+  expect(session.all.length).toBeGreaterThan(0);
+
+  // Summary should be available
+  const summary = rokuDevice.getLogSummary();
+  expect(typeof summary.errorCount).toBe('number');
+  expect(typeof summary.crashCount).toBe('number');
+
+  rokuDevice.stopLogCapture();
 });
 
 it('video playback screen loads', async () => {
