@@ -104,6 +104,8 @@ class LiveElement {
   toBeDisplayed(options?: WaitOptions): Promise<void>;
   toNotBeDisplayed(options?: WaitOptions): Promise<void>;
   toHaveText(expected: string | RegExp, options?: WaitOptions): Promise<void>;
+  toHaveAttribute(name: string, expected: string | RegExp, options?: WaitOptions): Promise<void>;
+  toNotHaveAttribute(name: string, expected: string | RegExp, options?: WaitOptions): Promise<void>;
   toExist(options?: WaitOptions): Promise<void>;
 }
 ```
@@ -116,6 +118,15 @@ Returned by `$$()`. Lazy - elements are queried on demand.
 class ElementCollection {
   get(index: number): LiveElement;
   get length(): Promise<number>;
+
+  // Assertions
+  toHaveLength(expected: number, options?: WaitOptions): Promise<void>;
+  toHaveText(expected: string[], options?: WaitOptions): Promise<void>;
+  toHaveTextInOrder(expected: (string | RegExp)[], options?: WaitOptions): Promise<void>;
+
+  // Iteration
+  map<R>(fn: (el: LiveElement, i: number) => Promise<R>): Promise<R[]>;
+  filter(fn: (el: LiveElement, i: number) => Promise<boolean>): Promise<LiveElement[]>;
 }
 ```
 
@@ -163,6 +174,9 @@ class BaseComponent {
   $(selector: string): LiveElement;
   $$(selector: string): ElementCollection;
   $$<T>(selector: string, ComponentClass: new (el: LiveElement) => T): TypedElementCollection<T>;
+
+  waitUntil(predicate: () => Promise<boolean>, options?: { timeout?: number; interval?: number; timeoutMsg?: string }): Promise<void>;
+  waitForCondition<T>(predicate: () => Promise<T | null | false>, options?: WaitOptions): Promise<T>;
 
   get driver(): TVDevice;
 }
@@ -295,9 +309,17 @@ class RokuAdapter implements TVDevice {
   toHavePlaybackPosition(minMs: number, maxMs?: number, options?: { timeout?: number }): Promise<void>;
   toHaveDuration(minMs: number, options?: { timeout?: number }): Promise<void>;
 
+  // App state
+  getAppState(appId: string): Promise<'not-running' | 'foreground' | 'not-installed'>;
+  waitForAppState(appId: string, state: 'not-running' | 'foreground' | 'not-installed', options?: WaitOptions): Promise<void>;
+  getPageSourceXml(): Promise<string>;
+  sendInput(params: Record<string, string | number>): Promise<void>;
+
   // Note: home() waits for the current app to exit before returning.
   // launchApp() and deepLink() wait for the target app to become active.
   // launchApp() dismisses the screensaver if the device was idle.
+  // waitForStable() delegates to roku-ecp by default. Pass indicators
+  // and trackedAttributes for app-specific stability definitions.
 }
 ```
 

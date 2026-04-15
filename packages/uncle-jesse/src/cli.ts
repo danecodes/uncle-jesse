@@ -9,7 +9,7 @@ export function createCli(): Command {
   program
     .name('uncle-jesse')
     .description('E2E testing framework for smart TVs')
-    .version('0.3.1');
+    .version('0.4.0');
 
   program
     .command('test')
