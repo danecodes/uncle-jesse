@@ -88,8 +88,8 @@ importers:
   packages/core:
     dependencies:
       '@danecodes/roku-odc':
-        specifier: '>=0.1.0'
-        version: 0.1.0
+        specifier: '>=0.2.1'
+        version: 0.2.3
       cosmiconfig:
         specifier: ^9.0.1
         version: 9.0.1(typescript@6.0.2)
@@ -100,7 +100,7 @@ importers:
         specifier: ^0.5.0
         version: 0.5.0
       '@danecodes/roku-log':
-        specifier: 0.1.0
+        specifier: ^0.1.0
         version: 0.1.0
       '@danecodes/uncle-jesse-core':
         specifier: workspace:*
@@ -214,10 +214,6 @@ packages:
 
   '@danecodes/roku-log@0.1.0':
     resolution: {integrity: sha512-E/cYUKdEirFVf+VleJTM9xJFgWc0apj1NsAsKFw0cBWZfVCtQ6sC+SKDnIrNrtd+qBZ/dFB1XosWBUob+JtLfQ==}
-    engines: {node: '>=22'}
-
-  '@danecodes/roku-odc@0.1.0':
-    resolution: {integrity: sha512-vr1zov2MbXGjtYZf5aI+wHb9BLaSdkbxSVVF2fYcebJ81YPP57e4QBdydAE8HBx2uMSvtwM5Y0tXdkfSo/k/kQ==}
     engines: {node: '>=22'}
 
   '@danecodes/roku-odc@0.2.3':
@@ -1822,8 +1818,6 @@ snapshots:
       yazl: 3.3.1
 
   '@danecodes/roku-log@0.1.0': {}
-
-  '@danecodes/roku-odc@0.1.0': {}
 
   '@danecodes/roku-odc@0.2.3':
     dependencies:

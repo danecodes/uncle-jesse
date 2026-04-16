@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@danecodes/roku-ecp": "^0.5.0",
-    "@danecodes/roku-log": "0.1.0",
+    "@danecodes/roku-log": "^0.1.0",
     "@danecodes/uncle-jesse-core": "workspace:*"
   },
   "engines": {

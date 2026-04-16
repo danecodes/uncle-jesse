@@ -34,7 +34,7 @@
     "cosmiconfig": "^9.0.1"
   },
   "peerDependencies": {
-    "@danecodes/roku-odc": ">=0.1.0"
+    "@danecodes/roku-odc": ">=0.2.1"
   },
   "peerDependenciesMeta": {
     "@danecodes/roku-odc": {
