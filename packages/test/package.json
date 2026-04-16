@@ -1,6 +1,6 @@
 {
   "name": "@danecodes/uncle-jesse-test",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "exports": {
     ".": {
@@ -30,7 +30,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@danecodes/uncle-jesse-core": "workspace:*"
+    "@danecodes/uncle-jesse-core": "^1.0.0"
   },
   "peerDependencies": {
     "vitest": ">=2.0.0"

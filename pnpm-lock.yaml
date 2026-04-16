@@ -103,14 +103,14 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0
       '@danecodes/uncle-jesse-core':
-        specifier: workspace:*
-        version: link:../core
+        specifier: ^1.0.0
+        version: 1.0.0(@danecodes/roku-odc@0.2.3)(typescript@6.0.2)
 
   packages/test:
     dependencies:
       '@danecodes/uncle-jesse-core':
-        specifier: workspace:*
-        version: link:../core
+        specifier: ^1.0.0
+        version: 1.0.0(@danecodes/roku-odc@0.2.3)(typescript@6.0.2)
       vitest:
         specifier: '>=2.0.0'
         version: 4.1.4(@types/node@25.6.0)(vite@8.0.8(@types/node@25.6.0)(esbuild@0.27.7))
@@ -121,14 +121,14 @@ importers:
         specifier: 0.5.2
         version: 0.5.2
       '@danecodes/uncle-jesse-core':
-        specifier: workspace:*
-        version: link:../core
+        specifier: ^1.0.0
+        version: 1.0.0(@danecodes/roku-odc@0.2.3)(typescript@6.0.2)
       '@danecodes/uncle-jesse-roku':
-        specifier: workspace:*
-        version: link:../roku
+        specifier: ^1.0.0
+        version: 1.0.0
       '@danecodes/uncle-jesse-test':
-        specifier: workspace:*
-        version: link:../test
+        specifier: ^1.0.0
+        version: 1.0.0(vitest@4.1.4(@types/node@25.6.0)(vite@8.0.8(@types/node@25.6.0)(esbuild@0.27.7)))
       chalk:
         specifier: ^5.4.0
         version: 5.6.2
@@ -219,6 +219,28 @@ packages:
   '@danecodes/roku-odc@0.2.3':
     resolution: {integrity: sha512-igg+2UPkzjKen5oQ6AIuMj65X+5R/i1T5nBnad8j5qeWEwxUp8IoBDPtKsyA9RiBSR8a9+Xih0Z/W8/3i+79Mw==}
     engines: {node: '>=22'}
+
+  '@danecodes/uncle-jesse-core@1.0.0':
+    resolution: {integrity: sha512-BYuXlX3yyBTgalVFLKkrm6ecOjD+Ynlh/njYeGch7rfoJXX4a9vgYx505/JFtboSgPDcLct3LGhMeBWniuxwDQ==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      '@danecodes/roku-odc': '>=0.2.1'
+    peerDependenciesMeta:
+      '@danecodes/roku-odc':
+        optional: true
+
+  '@danecodes/uncle-jesse-roku@1.0.0':
+    resolution: {integrity: sha512-z28h3gQMLLBxdzINvKZBRilS1h0VNEOfG25RzJgK1Yf5MCBtnz3+WZ5nibj48hncGFMEN36IyNSwE+Gg/nX8ag==}
+    engines: {node: '>=20'}
+
+  '@danecodes/uncle-jesse-test@1.0.0':
+    resolution: {integrity: sha512-8zJ/HjniXM9gG9q7jhDTRw1Qe/xv1wVfHQ263BqdGSx4YnnMHMm6C8Hkt5KKsbc4t8RxwcEBjbWCzjAvA5IOoA==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      vitest: '>=2.0.0'
+    peerDependenciesMeta:
+      vitest:
+        optional: true
 
   '@emnapi/core@1.9.2':
     resolution: {integrity: sha512-UC+ZhH3XtczQYfOlu3lNEkdW/p4dsJ1r/bP7H8+rhao3TTTMO1ATq/4DdIi23XuGoFY+Cz0JmCbdVl0hz9jZcA==}
@@ -1823,6 +1845,26 @@ snapshots:
     dependencies:
       yauzl: 3.3.0
       yazl: 3.3.1
+
+  '@danecodes/uncle-jesse-core@1.0.0(@danecodes/roku-odc@0.2.3)(typescript@6.0.2)':
+    dependencies:
+      cosmiconfig: 9.0.1(typescript@6.0.2)
+    optionalDependencies:
+      '@danecodes/roku-odc': 0.2.3
+    transitivePeerDependencies:
+      - typescript
+
+  '@danecodes/uncle-jesse-roku@1.0.0':
+    dependencies:
+      '@danecodes/roku-ecp': 0.5.2
+      '@danecodes/roku-log': 0.1.0
+      '@danecodes/uncle-jesse-core': link:packages/core
+
+  '@danecodes/uncle-jesse-test@1.0.0(vitest@4.1.4(@types/node@25.6.0)(vite@8.0.8(@types/node@25.6.0)(esbuild@0.27.7)))':
+    dependencies:
+      '@danecodes/uncle-jesse-core': link:packages/core
+    optionalDependencies:
+      vitest: 4.1.4(@types/node@25.6.0)(vite@8.0.8(@types/node@25.6.0)(esbuild@0.27.7))
 
   '@emnapi/core@1.9.2':
     dependencies:
