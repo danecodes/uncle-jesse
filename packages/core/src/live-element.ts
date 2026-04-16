@@ -147,13 +147,26 @@ export class LiveElement {
     for (let i = 0; i < maxAttempts && Date.now() - start < timeout; i++) {
       const current = await this.resolve();
       if (!current) {
-        // Element not in the tree yet. It may need to be scrolled into view
-        // to trigger lazy loading. Press down to scroll, then check again.
+        // Element not in the tree yet. Press down to scroll and trigger
+        // lazy loading, then check again.
         await this.device.press('down');
         await sleep(200);
         continue;
       }
       if (current.focused) return;
+
+      // Element exists but might be off-screen (not displayed).
+      // If it's not displayed, scroll within its parent container
+      // to bring it into view before attempting bounds-based navigation.
+      if (current.getAttribute('visible') === 'false') {
+        const focused = await this.device.getFocusedElement();
+        if (focused) {
+          const direction = computeDirection(current, focused) ?? 'down';
+          await this.device.press(direction);
+          await sleep(200);
+          continue;
+        }
+      }
 
       const focused = await this.device.getFocusedElement();
       if (!focused) {
@@ -601,6 +614,86 @@ class IndexedLiveElement extends LiveElement {
   async resolve() {
     const all = await this.device.$$(this.baseSelector);
     return all[this.index] ?? null;
+  }
+
+  async focus(options?: { maxAttempts?: number; timeout?: number }): Promise<void> {
+    // First check if the element already exists and is focused
+    const existing = await this.resolve();
+    if (existing?.focused) return;
+
+    // If the target index exists, use normal bounds-based focus
+    if (existing) {
+      // Check if it's displayed. If not, scroll within its container
+      // until it becomes visible
+      if (existing.getAttribute('visible') === 'false' || !getBounds(existing)) {
+        await this.scrollIntoView(options);
+        const afterScroll = await this.resolve();
+        if (afterScroll?.focused) return;
+      }
+      return super.focus(options);
+    }
+
+    // Target index doesn't exist yet (lazy-loaded content).
+    // Focus the last existing item, then press down to trigger loading.
+    const maxAttempts = options?.maxAttempts ?? 30;
+    const timeout = options?.timeout ?? 30000;
+    const start = Date.now();
+    let lastCount = 0;
+    let stuckIterations = 0;
+
+    for (let i = 0; i < maxAttempts && Date.now() - start < timeout; i++) {
+      const all = await this.device.$$(this.baseSelector);
+      const count = all.length;
+
+      if (count > this.index) {
+        // Target index now exists, focus it normally
+        return super.focus(options);
+      }
+
+      if (count === lastCount) {
+        stuckIterations++;
+        if (stuckIterations > 5) {
+          throw new Error(
+            `Could not load element at index ${this.index} of ${this.baseSelector}. ` +
+            `Collection stuck at ${count} items.`
+          );
+        }
+      } else {
+        stuckIterations = 0;
+      }
+      lastCount = count;
+
+      // Focus the last item in the collection to scroll near the bottom
+      if (count > 0) {
+        const lastItem = all[count - 1];
+        if (lastItem && !lastItem.focused) {
+          const lastEl = new LiveElement(this.device, this.baseSelector);
+          // Press down to move toward the end and trigger lazy loading
+          await this.device.press('down');
+          await sleep(300);
+        }
+      } else {
+        await this.device.press('down');
+        await sleep(300);
+      }
+    }
+
+    throw new Error(
+      `Could not focus element at index ${this.index} of ${this.baseSelector} after ${maxAttempts} attempts`
+    );
+  }
+
+  private async scrollIntoView(options?: { timeout?: number }): Promise<void> {
+    const timeout = options?.timeout ?? 10000;
+    const start = Date.now();
+
+    while (Date.now() - start < timeout) {
+      const el = await this.resolve();
+      if (!el) return;
+      if (el.getAttribute('visible') !== 'false' && getBounds(el)) return;
+      await this.device.press('down');
+      await sleep(200);
+    }
   }
 }
 
