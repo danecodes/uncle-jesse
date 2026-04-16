@@ -1,6 +1,6 @@
 {
   "name": "@danecodes/uncle-jesse-roku",
-  "version": "0.4.1",
+  "version": "1.0.0",
   "type": "module",
   "exports": {
     ".": {
