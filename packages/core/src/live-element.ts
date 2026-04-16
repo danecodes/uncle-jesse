@@ -155,10 +155,15 @@ export class LiveElement {
       }
       if (current.focused) return;
 
-      // Element exists but might be off-screen (not displayed).
-      // If it's not displayed, scroll within its parent container
-      // to bring it into view before attempting bounds-based navigation.
-      if (current.getAttribute('visible') === 'false') {
+      // Element exists but might be off-screen. Check viewport bounds.
+      const currentBounds = getBounds(current);
+      const isOnScreen = currentBounds
+        && currentBounds.x >= 0 && currentBounds.y >= 0
+        && currentBounds.x < 1920 && currentBounds.y < 1080
+        && currentBounds.x + currentBounds.width > 0
+        && currentBounds.y + currentBounds.height > 0;
+
+      if (!isOnScreen || current.getAttribute('visible') === 'false') {
         const focused = await this.device.getFocusedElement();
         if (focused) {
           const direction = computeDirection(current, focused) ?? 'down';
@@ -617,20 +622,27 @@ class IndexedLiveElement extends LiveElement {
   }
 
   async focus(options?: { maxAttempts?: number; timeout?: number }): Promise<void> {
-    // First check if the element already exists and is focused
     const existing = await this.resolve();
     if (existing?.focused) return;
 
-    // If the target index exists, use normal bounds-based focus
     if (existing) {
-      // Check if it's displayed. If not, scroll within its container
-      // until it becomes visible
-      if (existing.getAttribute('visible') === 'false' || !getBounds(existing)) {
+      // Element exists. Always try scrolling into view first for indexed
+      // elements since they may be off-screen even when bounds and visible
+      // look normal (bounds are within the tree but outside the viewport).
+      const bounds = getBounds(existing);
+      const isOnScreen = bounds
+        && bounds.x >= 0 && bounds.y >= 0
+        && bounds.x < 1920 && bounds.y < 1080
+        && bounds.x + bounds.width > 0
+        && bounds.y + bounds.height > 0;
+
+      if (!isOnScreen) {
         await this.scrollIntoView(options);
         const afterScroll = await this.resolve();
         if (afterScroll?.focused) return;
       }
-      return super.focus(options);
+
+      return super.focus({ ...options, maxAttempts: options?.maxAttempts ?? 30 });
     }
 
     // Target index doesn't exist yet (lazy-loaded content).
@@ -690,7 +702,16 @@ class IndexedLiveElement extends LiveElement {
     while (Date.now() - start < timeout) {
       const el = await this.resolve();
       if (!el) return;
-      if (el.getAttribute('visible') !== 'false' && getBounds(el)) return;
+
+      const bounds = getBounds(el);
+      const isOnScreen = bounds
+        && bounds.x >= 0 && bounds.y >= 0
+        && bounds.x < 1920 && bounds.y < 1080
+        && bounds.x + bounds.width > 0
+        && bounds.y + bounds.height > 0;
+
+      if (isOnScreen) return;
+
       await this.device.press('down');
       await sleep(200);
     }
