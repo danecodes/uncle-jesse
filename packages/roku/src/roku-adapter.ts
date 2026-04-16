@@ -243,9 +243,15 @@ export class RokuAdapter implements TVDevice {
     if (node.name) attrs['name'] = node.name;
 
     // Replace raw bounds with absolute screen coordinates
-    const rect = getRect(node);
-    if (rect) {
-      attrs['bounds'] = `{${rect.x}, ${rect.y}, ${rect.width}, ${rect.height}}`;
+    if (node.attrs.bounds) {
+      try {
+        const rect = getRect(node);
+        if (rect) {
+          attrs['bounds'] = `{${rect.x}, ${rect.y}, ${rect.width}, ${rect.height}}`;
+        }
+      } catch {
+        // getRect failed, keep raw bounds
+      }
     }
 
     const element = new UIElement(node.tag, attrs, [], parent);
