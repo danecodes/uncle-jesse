@@ -13,6 +13,7 @@ import {
   type WaitForStableOptions,
   type AppInfo,
   UIElement,
+  setDefaultQueryEngine,
   DeviceConnectionError,
   TimeoutError,
 } from '@danecodes/uncle-jesse-core';
@@ -63,6 +64,20 @@ export class RokuAdapter implements TVDevice {
     try {
       await this.client.queryDeviceInfo();
       this.connected = true;
+
+      // Override core's default SelectorEngine with roku-ecp's selector engine
+      // which supports :has(), [attr*=], *, comma groups, and all CSS patterns
+      setDefaultQueryEngine({
+        query: (root, selector) => {
+          const raw = this.elementToUiNode(root);
+          const found = findElement(raw, selector);
+          return found ? this.uiNodeToElement(found) : null;
+        },
+        queryAll: (root, selector) => {
+          const raw = this.elementToUiNode(root);
+          return findElements(raw, selector).map((n) => this.uiNodeToElement(n));
+        },
+      });
     } catch (err) {
       throw new DeviceConnectionError(this.ip, err as Error);
     }
@@ -230,6 +245,18 @@ export class RokuAdapter implements TVDevice {
       element.children.push(this.uiNodeToElement(child, element));
     }
     return element;
+  }
+
+  private elementToUiNode(el: UIElement): UiNode {
+    const attrs = { ...el.attributes };
+    const name = attrs['name'];
+    delete attrs['name'];
+    return {
+      tag: el.tag,
+      name,
+      attrs,
+      children: el.children.map((c) => this.elementToUiNode(c)),
+    };
   }
 
   async getUITree(): Promise<UIElement> {
