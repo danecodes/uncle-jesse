@@ -261,16 +261,19 @@ export class RokuAdapter implements TVDevice {
     return element;
   }
 
-  private elementToUiNode(el: UIElement): UiNode {
+  private elementToUiNode(el: UIElement, parent?: UiNode): UiNode {
     const attrs = { ...el.attributes };
     const name = attrs['name'];
     delete attrs['name'];
-    return {
+    const node: UiNode = {
       tag: el.tag,
       name,
       attrs,
-      children: el.children.map((c) => this.elementToUiNode(c)),
+      children: [],
+      parent,
     };
+    node.children = el.children.map((c) => this.elementToUiNode(c, node));
+    return node;
   }
 
   async getUITree(): Promise<UIElement> {
