@@ -22,7 +22,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@danecodes/roku-ecp": "^0.5.2",
+    "@danecodes/roku-ecp": "^0.6.0",
     "@danecodes/roku-log": "^0.1.0",
     "@danecodes/uncle-jesse-core": "^1.0.0"
   },
