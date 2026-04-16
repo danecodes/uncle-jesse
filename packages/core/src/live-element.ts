@@ -244,7 +244,10 @@ export class LiveElement {
   // Assertions that poll with timeout.
   // Checks if the element has focused="true" in its attributes,
   // meaning it's anywhere in the Roku focus chain (not just the leaf).
-  async toBeFocused(options?: WaitOptions): Promise<void> {
+  async toBeFocused(options?: WaitOptions & { inverted?: boolean }): Promise<void> {
+    if (options?.inverted) {
+      return this.toNotBeFocused(options);
+    }
     const timeout = options?.timeout ?? 10000;
     const interval = options?.interval ?? 200;
     const start = Date.now();
@@ -356,6 +359,72 @@ export class LiveElement {
       `Expected ${this.fullSelector} to not have attribute "${name}" matching "${expected}", but got "${actual}"`
     );
   }
+
+  async toNotExist(options?: WaitOptions): Promise<void> {
+    const timeout = options?.timeout ?? 10000;
+    const interval = options?.interval ?? 200;
+    const start = Date.now();
+
+    while (Date.now() - start < timeout) {
+      if (!(await this.isExisting())) return;
+      await sleep(interval);
+    }
+
+    throw new Error(
+      `Expected ${this.fullSelector} to not exist, but it does`
+    );
+  }
+
+  async toNotBeFocused(options?: WaitOptions): Promise<void> {
+    const timeout = options?.timeout ?? 10000;
+    const interval = options?.interval ?? 200;
+    const start = Date.now();
+
+    while (Date.now() - start < timeout) {
+      const el = await this.resolve();
+      if (!el?.focused) return;
+      await sleep(interval);
+    }
+
+    throw new Error(
+      `Expected ${this.fullSelector} to not be focused, but it is`
+    );
+  }
+
+  async toNotHaveText(expected: string | RegExp, options?: WaitOptions): Promise<void> {
+    const timeout = options?.timeout ?? 10000;
+    const interval = options?.interval ?? 200;
+    const start = Date.now();
+
+    while (Date.now() - start < timeout) {
+      const text = await this.getText();
+      if (typeof expected === 'string' && text !== expected) return;
+      if (expected instanceof RegExp && !expected.test(text)) return;
+      await sleep(interval);
+    }
+
+    const actual = await this.getText();
+    throw new Error(
+      `Expected ${this.fullSelector} to not have text "${expected}", but got "${actual}"`
+    );
+  }
+
+  async toHaveTextContaining(text: string, options?: WaitOptions): Promise<void> {
+    const timeout = options?.timeout ?? 10000;
+    const interval = options?.interval ?? 200;
+    const start = Date.now();
+
+    while (Date.now() - start < timeout) {
+      const actual = await this.getText();
+      if (actual.includes(text)) return;
+      await sleep(interval);
+    }
+
+    const actual = await this.getText();
+    throw new Error(
+      `Expected ${this.fullSelector} text to contain "${text}", but got "${actual}"`
+    );
+  }
 }
 
 export class ElementCollection {
@@ -384,33 +453,51 @@ export class ElementCollection {
     return this.device.$$(this.fullSelector).then((els) => els.length);
   }
 
-  async toHaveLength(expected: number, options?: WaitOptions): Promise<void> {
+  async toHaveLength(
+    expected: number | { gte?: number; lte?: number; eq?: number },
+    options?: WaitOptions,
+  ): Promise<void> {
     const timeout = options?.timeout ?? 10000;
     const interval = options?.interval ?? 200;
     const start = Date.now();
 
+    const matches = (count: number): boolean => {
+      if (typeof expected === 'number') return count === expected;
+      if (expected.eq !== undefined && count !== expected.eq) return false;
+      if (expected.gte !== undefined && count < expected.gte) return false;
+      if (expected.lte !== undefined && count > expected.lte) return false;
+      return true;
+    };
+
     while (Date.now() - start < timeout) {
       const count = await this.length;
-      if (count === expected) return;
+      if (matches(count)) return;
       await sleep(interval);
     }
 
     const actual = await this.length;
     throw new Error(
-      `Expected ${this.fullSelector} to have length ${expected}, but got ${actual}`
+      `Expected ${this.fullSelector} to have length ${JSON.stringify(expected)}, but got ${actual}`
     );
   }
 
-  async toHaveText(expected: string[], options?: WaitOptions): Promise<void> {
+  async toHaveText(
+    expected: string[] | { asymmetricMatch(actual: unknown): boolean },
+    options?: WaitOptions,
+  ): Promise<void> {
     const timeout = options?.timeout ?? 10000;
     const interval = options?.interval ?? 200;
     const start = Date.now();
 
     while (Date.now() - start < timeout) {
       const texts = await this.map(async (el) => el.getText());
-      const sorted = [...texts].sort();
-      const expectedSorted = [...expected].sort();
-      if (JSON.stringify(sorted) === JSON.stringify(expectedSorted)) return;
+      if ('asymmetricMatch' in expected && typeof expected.asymmetricMatch === 'function') {
+        if (expected.asymmetricMatch(texts)) return;
+      } else {
+        const sorted = [...texts].sort();
+        const expectedSorted = [...(expected as string[])].sort();
+        if (JSON.stringify(sorted) === JSON.stringify(expectedSorted)) return;
+      }
       await sleep(interval);
     }
 
