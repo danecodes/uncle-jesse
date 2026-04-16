@@ -696,14 +696,16 @@ class IndexedLiveElement extends LiveElement {
   }
 
   private async scrollIntoView(options?: { timeout?: number }): Promise<void> {
-    const timeout = options?.timeout ?? 10000;
+    const timeout = options?.timeout ?? 15000;
     const start = Date.now();
 
     while (Date.now() - start < timeout) {
-      const el = await this.resolve();
-      if (!el) return;
+      // Re-fetch the collection to get fresh positions
+      const all = await this.device.$$(this.baseSelector);
+      const target = all[this.index];
+      if (!target) return; // not loaded yet, caller handles this
 
-      const bounds = getBounds(el);
+      const bounds = getBounds(target);
       const isOnScreen = bounds
         && bounds.x >= 0 && bounds.y >= 0
         && bounds.x < 1920 && bounds.y < 1080
@@ -712,8 +714,25 @@ class IndexedLiveElement extends LiveElement {
 
       if (isOnScreen) return;
 
+      // Before pressing down, make sure focus is within this collection.
+      // If focus escaped to a sidebar or other UI, re-anchor it.
+      let focusInCollection = false;
+      for (const item of all) {
+        if (item.focused) {
+          focusInCollection = true;
+          break;
+        }
+      }
+
+      if (!focusInCollection && all.length > 0) {
+        // Focus the last visible item in the collection to anchor
+        const lastIdx = all.length - 1;
+        const lastEl = new IndexedLiveElement(this.device, this.baseSelector, lastIdx);
+        await lastEl.focus({ maxAttempts: 10 });
+      }
+
       await this.device.press('down');
-      await sleep(200);
+      await sleep(300);
     }
   }
 }
