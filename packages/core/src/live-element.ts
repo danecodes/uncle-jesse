@@ -601,13 +601,52 @@ interface Rect {
   height: number;
 }
 
-function getBounds(el: { bounds?: Rect; getAttribute(n: string): string | undefined }): Rect | null {
-  if (el.bounds) return el.bounds;
-  const b = el.getAttribute('bounds');
-  if (!b) return null;
-  const match = b.match(/\{(\d+),\s*(\d+),\s*(\d+),\s*(\d+)\}/);
+function parseBoundsString(b: string): Rect | null {
+  const match = b.match(/\{(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)\}/);
   if (!match) return null;
   return { x: Number(match[1]), y: Number(match[2]), width: Number(match[3]), height: Number(match[4]) };
+}
+
+function parseTranslation(t: string): { x: number; y: number } | null {
+  const match = t.match(/\{(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)\}/);
+  if (!match) return null;
+  return { x: Number(match[1]), y: Number(match[2]) };
+}
+
+function getBounds(el: {
+  bounds?: Rect;
+  parent?: { getAttribute(n: string): string | undefined; parent?: unknown } | null;
+  getAttribute(n: string): string | undefined;
+}): Rect | null {
+  let rect = el.bounds ?? null;
+
+  if (!rect) {
+    const b = el.getAttribute('bounds');
+    if (!b) return null;
+    rect = parseBoundsString(b);
+    if (!rect) return null;
+  }
+
+  // Walk parent chain accumulating translations for absolute screen position
+  if (el.getAttribute('inheritParentTransform') === 'false') return rect;
+
+  let { x, y } = rect;
+  let current = el.parent as { getAttribute(n: string): string | undefined; parent?: unknown } | null | undefined;
+
+  while (current) {
+    const t = current.getAttribute('translation');
+    if (t) {
+      const parsed = parseTranslation(t);
+      if (parsed) {
+        x += parsed.x;
+        y += parsed.y;
+      }
+    }
+    if (current.getAttribute('inheritParentTransform') === 'false') break;
+    current = (current as { parent?: unknown }).parent as typeof current;
+  }
+
+  return { x, y, width: rect.width, height: rect.height };
 }
 
 function computeDirection(
