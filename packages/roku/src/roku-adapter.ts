@@ -1,5 +1,6 @@
 import {
   EcpClient, type KeyName, parseUiXml, findElement, findElements, type UiNode,
+  getRect,
   waitForApp, waitForElement as ecpWaitForElement, waitForFocus as ecpWaitForFocus,
   waitFor, waitForStable as ecpWaitForStable,
 } from '@danecodes/roku-ecp';
@@ -240,6 +241,13 @@ export class RokuAdapter implements TVDevice {
   private uiNodeToElement(node: UiNode, parent: UIElement | null = null): UIElement {
     const attrs = { ...node.attrs };
     if (node.name) attrs['name'] = node.name;
+
+    // Replace raw bounds with absolute screen coordinates
+    const rect = getRect(node);
+    if (rect) {
+      attrs['bounds'] = `{${rect.x}, ${rect.y}, ${rect.width}, ${rect.height}}`;
+    }
+
     const element = new UIElement(node.tag, attrs, [], parent);
     for (const child of node.children) {
       element.children.push(this.uiNodeToElement(child, element));

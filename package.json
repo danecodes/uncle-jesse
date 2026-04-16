@@ -27,7 +27,7 @@
     ]
   },
   "dependencies": {
-    "@danecodes/roku-ecp": "0.6.1",
+    "@danecodes/roku-ecp": "0.6.2",
     "ctrf": "0.2.0"
   }
 }
