@@ -122,6 +122,17 @@ await tv.sendInput({ command: 'pause', type: 'transport' });
 await tv.sendInput({ command: 'seek', type: 'transport', direction: 'forward', duration: 30 });
 ```
 
+## Touch Input
+
+Send touch events to the device screen. Coordinates use pixel positions.
+
+```typescript
+await tv.touch(640, 360);                    // tap center of 1280x720 screen
+await tv.touch(100, 200, 'down');            // touch down
+await tv.touch(200, 200, 'move');            // drag
+await tv.touch(200, 200, 'up');              // release
+```
+
 ## App State
 
 Query and wait for app lifecycle states.

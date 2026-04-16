@@ -125,6 +125,10 @@ export class RokuAdapter implements TVDevice {
     await this.client.input(stringParams);
   }
 
+  async touch(x: number, y: number, op?: 'down' | 'up' | 'press' | 'move'): Promise<void> {
+    await this.client.touch({ x, y, op });
+  }
+
   async navigate(direction: Direction, steps = 1): Promise<void> {
     await this.press(direction, { times: steps });
   }

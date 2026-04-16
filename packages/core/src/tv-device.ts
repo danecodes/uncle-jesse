@@ -22,6 +22,7 @@ export interface TVDevice {
   longPress(key: RemoteKey, duration?: number): Promise<void>;
   type(text: string): Promise<void>;
   sendInput(params: Record<string, string | number>): Promise<void>;
+  touch(x: number, y: number, op?: 'down' | 'up' | 'press' | 'move'): Promise<void>;
 
   navigate(direction: Direction, steps?: number): Promise<void>;
   select(): Promise<void>;

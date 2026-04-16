@@ -39,6 +39,7 @@ function mockDevice(focusSequence: (string | undefined)[]): TVDevice {
     waitForCondition: vi.fn(),
     waitForStable: vi.fn(),
     sendInput: vi.fn(),
+    touch: vi.fn(),
     deepLink: vi.fn(),
     getFocusedElement: vi.fn(() => {
       const id = focusSequence[callIdx];
