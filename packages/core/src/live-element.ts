@@ -249,6 +249,14 @@ export class LiveElement {
     );
   }
 
+  async toBeInFocusChain(options?: WaitOptions): Promise<void> {
+    // Same check as toBeFocused since Roku sets focused="true" on the
+    // entire chain. This method exists for semantic clarity: use
+    // toBeFocused when you expect the leaf, toBeInFocusChain when you
+    // only care that the element is an ancestor of the focused node.
+    return this.toBeFocused(options);
+  }
+
   async toBeDisplayed(options?: WaitOptions): Promise<void> {
     await this.waitForDisplayed(options);
   }

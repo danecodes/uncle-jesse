@@ -319,6 +319,82 @@ reporter.save(); // writes test-results/ctrf-report.json
 
 The report includes device name, environment metadata, focusPath step failures, and maps to the CTRF schema for Parquet ingestion.
 
+## Multi-Device Parallel Testing
+
+`DevicePool` manages a pool of devices for parallel test execution. Use `poolTest` instead of `test` to automatically acquire and release devices.
+
+```typescript
+// setup.ts
+import { setDevicePool } from '@danecodes/uncle-jesse-test';
+import { DevicePool } from '@danecodes/uncle-jesse-core';
+import { RokuAdapter } from '@danecodes/uncle-jesse-roku';
+
+const devices = [
+  new RokuAdapter({ name: 'roku-1', ip: '192.168.1.50' }),
+  new RokuAdapter({ name: 'roku-2', ip: '192.168.1.51' }),
+  new RokuAdapter({ name: 'roku-3', ip: '192.168.1.52' }),
+];
+for (const d of devices) await d.connect();
+setDevicePool(new DevicePool(devices));
+
+// test file
+import { poolTest as test } from '@danecodes/uncle-jesse-test';
+
+test('navigate grid', async ({ tv }) => {
+  // tv is acquired from the pool, released after the test
+  await tv.launchApp('dev');
+});
+```
+
+## File Operations (ODC)
+
+Read and write files on the Roku device filesystem. Requires `@danecodes/roku-odc` and an app with the ODC component injected.
+
+```typescript
+import { OdcClient } from '@danecodes/roku-odc';
+
+const odc = new OdcClient('192.168.1.100');
+tv.setOdc(odc);
+
+await tv.pushFile('tmp:/test-data.json', Buffer.from('{"key":"value"}'));
+const data = await tv.pullFile('tmp:/test-data.json');
+const files = await tv.listFiles('tmp:/');
+```
+
+## Mock API Server
+
+Use `@danecodes/roku-mock` for deterministic test data. Uncle Jesse provides `MockTestHelper` to manage the server lifecycle and verify API calls.
+
+```typescript
+import { MockTestHelper } from '@danecodes/uncle-jesse-test';
+import { MockServer, ScenarioManager } from '@danecodes/roku-mock';
+
+const server = new MockServer({ port: 3000 });
+const scenarios = new ScenarioManager();
+const mock = new MockTestHelper({
+  server,
+  scenarios,
+  configureDevice: async (srv, device) => {
+    // Point the app at the mock server
+    await device.sendInput({ apiBaseUrl: srv.baseUrl });
+  },
+});
+
+beforeEach(async () => {
+  await mock.setup(device);
+  mock.activateScenario('premiumUser');
+});
+
+afterEach(async () => {
+  await mock.teardown();
+});
+
+it('loads profile', async () => {
+  await device.launchApp('dev');
+  expect(mock.requestCount('/v1/profile')).toBeGreaterThan(0);
+});
+```
+
 ## CLI
 
 ```bash

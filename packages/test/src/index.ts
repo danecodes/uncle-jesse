@@ -3,6 +3,10 @@ export type { FocusPathResult, FocusPathFailure, FocusPathOptions } from './focu
 export { TVPage } from './tv-page.js';
 export { test, setDeviceFactory, setScreenshotOnFailure, setLogCapture, setTestHooks } from './fixture.js';
 export type { TVFixtures } from './fixture.js';
+export { poolTest, setDevicePool } from './pool-fixture.js';
+export type { PoolFixtures } from './pool-fixture.js';
+export { MockTestHelper } from './mock-fixture.js';
+export type { MockServerLike, MockScenarioLike, MockFixtureOptions } from './mock-fixture.js';
 export { tvMatchers } from './matchers.js';
 export type { TVMatchers } from './matchers.js';
 export { uncleJessePlugin } from './vitest-plugin.js';

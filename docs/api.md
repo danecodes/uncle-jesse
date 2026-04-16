@@ -107,6 +107,7 @@ class LiveElement {
   toHaveAttribute(name: string, expected: string | RegExp, options?: WaitOptions): Promise<void>;
   toNotHaveAttribute(name: string, expected: string | RegExp, options?: WaitOptions): Promise<void>;
   toExist(options?: WaitOptions): Promise<void>;
+  toBeInFocusChain(options?: WaitOptions): Promise<void>;
 }
 ```
 
@@ -314,6 +315,12 @@ class RokuAdapter implements TVDevice {
   waitForAppState(appId: string, state: 'not-running' | 'foreground' | 'not-installed', options?: WaitOptions): Promise<void>;
   getPageSourceXml(): Promise<string>;
   sendInput(params: Record<string, string | number>): Promise<void>;
+
+  // File operations (requires roku-odc)
+  setOdc(odc: OdcLike): void;
+  pullFile(source: string): Promise<Buffer>;
+  pushFile(destination: string, data: Buffer): Promise<void>;
+  listFiles(path?: string): Promise<string[]>;
 
   // Note: home() waits for the current app to exit before returning.
   // launchApp() and deepLink() wait for the target app to become active.

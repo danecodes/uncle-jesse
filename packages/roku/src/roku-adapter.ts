@@ -18,6 +18,15 @@ import {
 } from '@danecodes/uncle-jesse-core';
 import { RokuKeyMap } from './roku-key-map.js';
 
+interface OdcLike {
+  pullFile(source: string): Promise<Buffer>;
+  pushFile(destination: string, data: Buffer): Promise<void>;
+  listFiles(path?: string): Promise<string[]>;
+  setRegistry(data: Record<string, Record<string, string>>): Promise<void>;
+  clearRegistry(sections?: string[]): Promise<void>;
+  getRegistry(): Promise<Record<string, Record<string, string>>>;
+}
+
 export class RokuAdapter implements TVDevice {
   readonly platform: Platform = 'roku';
   readonly name: string;
@@ -28,6 +37,7 @@ export class RokuAdapter implements TVDevice {
   private pressDelay: number;
   private logStream: LogStream | null = null;
   private _logSession: LogSession = new LogSession();
+  private _odc: OdcLike | null = null;
 
   constructor(options: {
     name: string;
@@ -370,6 +380,31 @@ export class RokuAdapter implements TVDevice {
 
   getLogSummary() {
     return this._logSession.summary();
+  }
+
+  setOdc(odc: OdcLike): void {
+    this._odc = odc;
+  }
+
+  private requireOdc(): OdcLike {
+    if (!this._odc) {
+      throw new Error(
+        'ODC not configured. Call device.setOdc(new OdcClient(ip)) to enable file and registry operations.'
+      );
+    }
+    return this._odc;
+  }
+
+  async pullFile(source: string): Promise<Buffer> {
+    return this.requireOdc().pullFile(source);
+  }
+
+  async pushFile(destination: string, data: Buffer): Promise<void> {
+    return this.requireOdc().pushFile(destination, data);
+  }
+
+  async listFiles(path?: string): Promise<string[]> {
+    return this.requireOdc().listFiles(path);
   }
 
   async getMediaPlayerState(): Promise<MediaPlayerInfo> {
