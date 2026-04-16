@@ -147,6 +147,9 @@ export class LiveElement {
     for (let i = 0; i < maxAttempts && Date.now() - start < timeout; i++) {
       const current = await this.resolve();
       if (!current) {
+        // Element not in the tree yet. It may need to be scrolled into view
+        // to trigger lazy loading. Press down to scroll, then check again.
+        await this.device.press('down');
         await sleep(200);
         continue;
       }
