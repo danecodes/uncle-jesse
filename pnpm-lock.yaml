@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@danecodes/roku-ecp':
-        specifier: 0.6.0
-        version: 0.6.0
+        specifier: 0.6.1
+        version: 0.6.1
       ctrf:
         specifier: 0.2.0
         version: 0.2.0
@@ -97,8 +97,8 @@ importers:
   packages/roku:
     dependencies:
       '@danecodes/roku-ecp':
-        specifier: ^0.6.0
-        version: 0.6.0
+        specifier: ^0.6.1
+        version: 0.6.1
       '@danecodes/roku-log':
         specifier: ^0.1.0
         version: 0.1.0
@@ -118,8 +118,8 @@ importers:
   packages/uncle-jesse:
     dependencies:
       '@danecodes/roku-ecp':
-        specifier: 0.6.0
-        version: 0.6.0
+        specifier: 0.6.1
+        version: 0.6.1
       '@danecodes/uncle-jesse-core':
         specifier: ^1.0.0
         version: 1.0.0(@danecodes/roku-odc@0.2.3)(typescript@6.0.2)
@@ -212,8 +212,8 @@ packages:
     resolution: {integrity: sha512-OS9FBxeveNnNp258Qjcr7Ut56+hXSOUyo1rZgNWndyLVn+Coluq8jdkgTOcIpkxkN8cmRsFw/QrbRrbrX+5mPQ==}
     engines: {node: '>=22'}
 
-  '@danecodes/roku-ecp@0.6.0':
-    resolution: {integrity: sha512-hmuXNC+4AETNLDDHcOdS8LhuvD1Ky/0Ah3Q+B1/Aa27yYD6r32GiT9w5964aEgsa/+9XJN67e+3ONrVbgQrBrA==}
+  '@danecodes/roku-ecp@0.6.1':
+    resolution: {integrity: sha512-L6X+nteWWtZw3Dk5oi26nU0oNXE0qA+gwUJvHNRoSA2/ikQu9bwmvto7WKwnZnXaRj8DGMYsKyqhIVKpTYiuzA==}
     engines: {node: '>=22'}
 
   '@danecodes/roku-log@0.1.0':
@@ -1843,7 +1843,7 @@ snapshots:
       fast-xml-parser: 5.5.11
       yazl: 3.3.1
 
-  '@danecodes/roku-ecp@0.6.0':
+  '@danecodes/roku-ecp@0.6.1':
     dependencies:
       '@danecodes/roku-log': 0.1.0
       fast-xml-parser: 5.5.11
