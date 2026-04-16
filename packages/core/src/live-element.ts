@@ -141,6 +141,8 @@ export class LiveElement {
     const timeout = options?.timeout ?? 15000;
     const start = Date.now();
     let lastFocusedId: string | undefined;
+    let stuckCount = 0;
+    const fallbackDirections: Direction[] = ['down', 'right', 'up', 'left'];
 
     for (let i = 0; i < maxAttempts && Date.now() - start < timeout; i++) {
       const current = await this.resolve();
@@ -150,35 +152,45 @@ export class LiveElement {
       }
       if (current.focused) return;
 
-      // Check if the target is contained within the focused element
-      // or vice versa. Either means we're in the right focus chain.
       const focused = await this.device.getFocusedElement();
       if (!focused) {
         await sleep(200);
         continue;
       }
 
-      const direction = computeDirection(current, focused);
-      if (!direction) {
-        throw new Error(
-          `Cannot determine direction to navigate from ${describeBounds(focused)} to ${describeBounds(current)}`
-        );
+      let direction: Direction;
+
+      if (stuckCount >= 2) {
+        // Bounds-based navigation failed repeatedly. The target is likely
+        // off-screen in a scrollable container where bounds don't reflect
+        // the actual screen position. Cycle through directions to find
+        // one that moves focus toward the target.
+        direction = fallbackDirections[stuckCount % fallbackDirections.length];
+      } else {
+        direction = computeDirection(current, focused) ?? 'down';
       }
 
       await this.device.press(direction);
       await sleep(200);
 
-      // Check if focus actually moved
       const newFocused = await this.device.getFocusedElement();
       const newId = newFocused?.id ?? newFocused?.getAttribute('title') ?? newFocused?.tag;
+
       if (newId === lastFocusedId) {
-        // Focus didn't move. Try the secondary axis.
-        const altDirection = computeAlternateDirection(current, focused);
-        if (altDirection) {
-          await this.device.press(altDirection);
-          await sleep(200);
+        stuckCount++;
+
+        if (stuckCount === 1) {
+          // First stuck: try the secondary axis
+          const altDirection = computeAlternateDirection(current, focused);
+          if (altDirection) {
+            await this.device.press(altDirection);
+            await sleep(200);
+          }
         }
+      } else {
+        stuckCount = 0;
       }
+
       lastFocusedId = newId;
     }
 
