@@ -21,11 +21,11 @@ Your existing CSS selectors work without changes. Uncle Jesse uses the same sele
 
 ```typescript
 // These selectors work the same way
-this.$('HomePage HomeHeroCarousel')
-this.$('AppButton#info_button')
-this.$('#metaContainer AppLabel')
-this.$('CardList LinearCard')
-this.$('HomePage CollectionModule:has(+ CollectionModule)')
+this.$('HomePage HeroCarousel')
+this.$('Button#infoBtn')
+this.$('#infoContainer Label')
+this.$('ContentList ContentCard')
+this.$('HomePage ContentShelf:has(+ ContentShelf)')
 this.$('Label[text="Play"]')
 ```
 
@@ -45,13 +45,13 @@ import { BasePage, BaseComponent } from '@danecodes/uncle-jesse-core';
 The class structure stays the same:
 
 ```typescript
-export class HomeHeroCarousel extends BaseComponent {
+export class HeroCarousel extends BaseComponent {
   get currentCard() {
-    return new HomeHeroCarouselCard(this.$('HomeHeroCarouselCard'));
+    return new HeroCarouselCard(this.$('HeroCarouselCard'));
   }
 
   get cards() {
-    return this.$$('HomeHeroCarouselCard', HomeHeroCarouselCard);
+    return this.$$('HeroCarouselCard', HeroCarouselCard);
   }
 
   get paginator() {

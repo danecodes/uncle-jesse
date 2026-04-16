@@ -44,7 +44,7 @@ function mockDevice(focusSequence: (string | undefined)[]): TVDevice {
     getFocusedElement: vi.fn(() => {
       const id = focusSequence[callIdx];
       if (!id) return Promise.resolve(null);
-      return Promise.resolve(new UIElement('AppButton', { name: id }));
+      return Promise.resolve(new UIElement('Button', { name: id }));
     }),
   };
 }

@@ -53,7 +53,7 @@ export class RegistryState {
   }
 
   static skipOnboarding(): RegistryState {
-    return new RegistryState().set('CR_ROKU', 'isFirstLaunch', 'false');
+    return new RegistryState().set('APP_CONFIG', 'isFirstLaunch', 'false');
   }
 
   static authenticated(): RegistryState {

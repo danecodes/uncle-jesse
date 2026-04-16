@@ -19,12 +19,12 @@ function el(
 
 describe('UIElement', () => {
   it('exposes id from name attribute', () => {
-    const node = new UIElement('AppButton', { name: 'myBtn' });
+    const node = new UIElement('Button', { name: 'myBtn' });
     expect(node.id).toBe('myBtn');
   });
 
   it('exposes text', () => {
-    const node = new UIElement('AppLabel', { text: 'Hello' });
+    const node = new UIElement('Label', { text: 'Hello' });
     expect(node.text).toBe('Hello');
   });
 
@@ -60,20 +60,20 @@ describe('UIElement', () => {
 
   it('findAll collects all matches', () => {
     const tree = el('Root', {}, [
-      el('AppButton', { name: 'a' }),
-      el('Group', {}, [el('AppButton', { name: 'b' })]),
+      el('Button', { name: 'a' }),
+      el('Group', {}, [el('Button', { name: 'b' })]),
     ]);
-    const results = tree.findAll((n) => n.tag === 'AppButton');
+    const results = tree.findAll((n) => n.tag === 'Button');
     expect(results).toHaveLength(2);
   });
 
   it('$ and $$ delegate to SelectorEngine', () => {
     const tree = el('Root', {}, [
-      el('AppButton', { name: 'btn1' }),
-      el('AppButton', { name: 'btn2' }),
+      el('Button', { name: 'btn1' }),
+      el('Button', { name: 'btn2' }),
     ]);
-    expect(tree.$('AppButton')?.id).toBe('btn1');
-    expect(tree.$$('AppButton')).toHaveLength(2);
+    expect(tree.$('Button')?.id).toBe('btn1');
+    expect(tree.$$('Button')).toHaveLength(2);
   });
 
   it('toString produces readable output', () => {

@@ -6,8 +6,8 @@ import { generateReplayHtml } from '../src/replay/viewer.js';
 setDefaultQueryEngine(new SelectorEngine());
 
 function makeTree(): UIElement {
-  const child1 = new UIElement('AppButton', { name: 'btn1', focused: 'true' }, [], null);
-  const child2 = new UIElement('AppButton', { name: 'btn2', focused: 'false' }, [], null);
+  const child1 = new UIElement('Button', { name: 'btn1', focused: 'true' }, [], null);
+  const child2 = new UIElement('Button', { name: 'btn2', focused: 'false' }, [], null);
   const root = new UIElement('Scene', {}, [child1, child2], null);
   (child1 as { parent: UIElement | null }).parent = root;
   (child2 as { parent: UIElement | null }).parent = root;

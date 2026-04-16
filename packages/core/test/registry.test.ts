@@ -28,37 +28,37 @@ function mockOdc(): OdcClient & { _data: Record<string, Record<string, string>> 
 describe('RegistryState', () => {
   it('builds registry data with set()', () => {
     const state = new RegistryState()
-      .set('CR_ROKU', 'isFirstLaunch', 'false')
-      .set('CR_ROKU', 'language', 'en');
+      .set('APP_CONFIG', 'isFirstLaunch', 'false')
+      .set('APP_CONFIG', 'language', 'en');
 
     expect(state.toJSON()).toEqual({
-      CR_ROKU: { isFirstLaunch: 'false', language: 'en' },
+      APP_CONFIG: { isFirstLaunch: 'false', language: 'en' },
     });
   });
 
   it('merges registry data', () => {
     const state = new RegistryState()
-      .set('CR_ROKU', 'isFirstLaunch', 'false')
+      .set('APP_CONFIG', 'isFirstLaunch', 'false')
       .merge({ SETTINGS: { subtitles: 'on' } });
 
     expect(state.toJSON()).toEqual({
-      CR_ROKU: { isFirstLaunch: 'false' },
+      APP_CONFIG: { isFirstLaunch: 'false' },
       SETTINGS: { subtitles: 'on' },
     });
   });
 
   it('generates launch params with clear registry', () => {
-    const state = new RegistryState().set('CR_ROKU', 'isFirstLaunch', 'false');
+    const state = new RegistryState().set('APP_CONFIG', 'isFirstLaunch', 'false');
     const params = state.toLaunchParams();
 
     expect(params.odc_clear_registry).toBe('true');
     expect(params.odc_registry).toBe(JSON.stringify({
-      CR_ROKU: { isFirstLaunch: 'false' },
+      APP_CONFIG: { isFirstLaunch: 'false' },
     }));
   });
 
   it('generates launch params without clear registry', () => {
-    const state = new RegistryState().set('CR_ROKU', 'isFirstLaunch', 'false');
+    const state = new RegistryState().set('APP_CONFIG', 'isFirstLaunch', 'false');
     const params = state.toLaunchParams({ clearRegistry: false });
 
     expect(params.odc_clear_registry).toBeUndefined();
@@ -67,7 +67,7 @@ describe('RegistryState', () => {
   it('skipOnboarding sets isFirstLaunch to false', () => {
     const state = RegistryState.skipOnboarding();
     expect(state.toJSON()).toEqual({
-      CR_ROKU: { isFirstLaunch: 'false' },
+      APP_CONFIG: { isFirstLaunch: 'false' },
     });
   });
 
@@ -88,18 +88,18 @@ describe('RegistryState', () => {
       odc._data['OLD_SECTION'] = { old: 'data' };
 
       const state = new RegistryState()
-        .set('CR_ROKU', 'isFirstLaunch', 'false')
+        .set('APP_CONFIG', 'isFirstLaunch', 'false')
         .set('SETTINGS', 'language', 'en');
 
       await state.applyViaOdc(odc);
 
       expect(odc.clearRegistry).toHaveBeenCalledOnce();
       expect(odc.setRegistry).toHaveBeenCalledWith({
-        CR_ROKU: { isFirstLaunch: 'false' },
+        APP_CONFIG: { isFirstLaunch: 'false' },
         SETTINGS: { language: 'en' },
       });
       expect(odc._data['OLD_SECTION']).toBeUndefined();
-      expect(odc._data['CR_ROKU']).toEqual({ isFirstLaunch: 'false' });
+      expect(odc._data['APP_CONFIG']).toEqual({ isFirstLaunch: 'false' });
     });
 
     it('skips clear when clearFirst is false', async () => {
@@ -127,13 +127,13 @@ describe('RegistryState', () => {
   describe('readFromDevice', () => {
     it('reads registry and returns a RegistryState', async () => {
       const odc = mockOdc();
-      odc._data['CR_ROKU'] = { isFirstLaunch: 'false', user: 'dane' };
+      odc._data['APP_CONFIG'] = { isFirstLaunch: 'false', user: 'dane' };
       odc._data['SETTINGS'] = { language: 'en' };
 
       const state = await RegistryState.readFromDevice(odc);
 
       expect(state.toJSON()).toEqual({
-        CR_ROKU: { isFirstLaunch: 'false', user: 'dane' },
+        APP_CONFIG: { isFirstLaunch: 'false', user: 'dane' },
         SETTINGS: { language: 'en' },
       });
     });
@@ -150,8 +150,8 @@ describe('RegistryState', () => {
       const odc = mockOdc();
 
       const original = new RegistryState()
-        .set('CR_ROKU', 'isFirstLaunch', 'false')
-        .set('CR_ROKU', 'language', 'en')
+        .set('APP_CONFIG', 'isFirstLaunch', 'false')
+        .set('APP_CONFIG', 'language', 'en')
         .set('SETTINGS', 'subtitles', 'on')
         .set('SETTINGS', 'quality', 'auto');
 

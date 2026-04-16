@@ -8,33 +8,33 @@ Every SceneGraph node appears in the tree with its component type as the tag nam
 
 ```xml
 <HomePage name="homePage" focused="true">
-  <HomeHeroCarousel name="heroCarousel">
-    <AppButton name="infoBtn" text="More Info" />
-  </HomeHeroCarousel>
+  <HeroCarousel name="heroCarousel">
+    <Button name="infoBtn" text="More Info" />
+  </HeroCarousel>
 </HomePage>
 ```
 
-This tree is queryable with selectors like `HomePage HomeHeroCarousel AppButton#infoBtn`.
+This tree is queryable with selectors like `HomePage HeroCarousel Button#infoBtn`.
 
 ## Name your components
 
 Set the `id` field in your XML to give components a `name` attribute in the ECP tree. Without it, you can only select by tag name, which breaks when you have multiple instances of the same component.
 
 ```xml
-<!-- Good: queryable as #heroCarousel or HomeHeroCarousel#heroCarousel -->
-<HomeHeroCarousel id="heroCarousel" />
+<!-- Good: queryable as #heroCarousel or HeroCarousel#heroCarousel -->
+<HeroCarousel id="heroCarousel" />
 
-<!-- Bad: only queryable as HomeHeroCarousel, ambiguous if there are two -->
-<HomeHeroCarousel />
+<!-- Bad: only queryable as HeroCarousel, ambiguous if there are two -->
+<HeroCarousel />
 ```
 
 ## Use descriptive component names
 
-The component name in your XML definition becomes the tag in the ECP tree. `HomeHeroCarousel` is a better selector target than `Group` or `LayoutGroup`.
+The component name in your XML definition becomes the tag in the ECP tree. `HeroCarousel` is a better selector target than `Group` or `LayoutGroup`.
 
 ```xml
-<!-- Good: queryable as HomePage HomeHeroCarousel -->
-<component name="HomeHeroCarousel" extends="Group">
+<!-- Good: queryable as HomePage HeroCarousel -->
+<component name="HeroCarousel" extends="Group">
 
 <!-- Bad: queryable only as Group, not distinguishable from other Groups -->
 <component name="Group" extends="Group">
@@ -61,14 +61,14 @@ Each named component in your hierarchy is a selector anchor point. Deep trees of
 <Group>
   <Group>
     <Group>
-      <AppButton text="Play" />
+      <Button text="Play" />
     </Group>
   </Group>
 </Group>
 
 <!-- Easy to target -->
 <PlayerControls id="controls">
-  <AppButton id="playBtn" text="Play" />
+  <Button id="playBtn" text="Play" />
 </PlayerControls>
 ```
 

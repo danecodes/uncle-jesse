@@ -61,7 +61,7 @@ it('clear registry via ODC', async () => {
 
 it('launch params and ODC write produce equivalent registry state', async () => {
   const state = new RegistryState()
-    .set('CR_ROKU', 'isFirstLaunch', 'false')
+    .set('APP_CONFIG', 'isFirstLaunch', 'false')
     .set('SETTINGS', 'language', 'en');
 
   // Write via ODC
@@ -87,5 +87,5 @@ it('skipOnboarding writes the correct registry value', async () => {
   await state.applyViaOdc(odc);
 
   const readBack = await RegistryState.readFromDevice(odc);
-  expect(readBack.toJSON()['CR_ROKU']?.['isFirstLaunch']).toBe('false');
+  expect(readBack.toJSON()['APP_CONFIG']?.['isFirstLaunch']).toBe('false');
 });

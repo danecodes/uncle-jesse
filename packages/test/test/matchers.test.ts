@@ -19,12 +19,12 @@ declare module 'vitest' {
 describe('tvMatchers', () => {
   describe('toBeFocused', () => {
     it('passes for focused element', () => {
-      const el = new UIElement('AppButton', { focused: 'true' });
+      const el = new UIElement('Button', { focused: 'true' });
       expect(el).toBeFocused();
     });
 
     it('fails for unfocused element', () => {
-      const el = new UIElement('AppButton', { focused: 'false' });
+      const el = new UIElement('Button', { focused: 'false' });
       expect(el).not.toBeFocused();
     });
 
@@ -35,31 +35,31 @@ describe('tvMatchers', () => {
 
   describe('toBeVisible', () => {
     it('passes for visible element (default)', () => {
-      const el = new UIElement('AppButton', {});
+      const el = new UIElement('Button', {});
       expect(el).toBeVisible();
     });
 
     it('fails for hidden element', () => {
-      const el = new UIElement('AppButton', { visible: 'false' });
+      const el = new UIElement('Button', { visible: 'false' });
       expect(el).not.toBeVisible();
     });
   });
 
   describe('toHaveText', () => {
     it('passes when text matches', () => {
-      const el = new UIElement('AppLabel', { text: 'Movies' });
+      const el = new UIElement('Label', { text: 'Movies' });
       expect(el).toHaveText('Movies');
     });
 
     it('fails when text differs', () => {
-      const el = new UIElement('AppLabel', { text: 'Movies' });
+      const el = new UIElement('Label', { text: 'Movies' });
       expect(el).not.toHaveText('Shows');
     });
   });
 
   describe('toExist', () => {
     it('passes for an element', () => {
-      const el = new UIElement('AppButton', {});
+      const el = new UIElement('Button', {});
       expect(el).toExist();
     });
 
@@ -74,22 +74,22 @@ describe('tvMatchers', () => {
 
   describe('toHaveAttribute', () => {
     it('passes when attribute exists', () => {
-      const el = new UIElement('AppButton', { opacity: '1.0' });
+      const el = new UIElement('Button', { opacity: '1.0' });
       expect(el).toHaveAttribute('opacity');
     });
 
     it('passes when attribute matches value', () => {
-      const el = new UIElement('AppButton', { opacity: '1.0' });
+      const el = new UIElement('Button', { opacity: '1.0' });
       expect(el).toHaveAttribute('opacity', '1.0');
     });
 
     it('fails when attribute value differs', () => {
-      const el = new UIElement('AppButton', { opacity: '1.0' });
+      const el = new UIElement('Button', { opacity: '1.0' });
       expect(el).not.toHaveAttribute('opacity', '0.5');
     });
 
     it('fails when attribute missing', () => {
-      const el = new UIElement('AppButton', {});
+      const el = new UIElement('Button', {});
       expect(el).not.toHaveAttribute('opacity');
     });
   });

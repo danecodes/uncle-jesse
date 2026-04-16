@@ -447,7 +447,7 @@ await tv.launchApp('dev', params);
 
 // Or build custom state
 const custom = new RegistryState()
-  .set('CR_ROKU', 'isFirstLaunch', 'false')
+  .set('APP_CONFIG', 'isFirstLaunch', 'false')
   .set('SETTINGS', 'subtitleLanguage', 'en');
 await tv.launchApp('dev', custom.toLaunchParams());
 ```

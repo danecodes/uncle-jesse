@@ -21,26 +21,26 @@ function el(
 
 // Build a tree resembling a Roku scene:
 // Scene
-//   HomePage (name=homePage)
+//   MainScreen (name=homePage)
 //     HeroCarousel (name=heroCarousel)
-//       AppButton (name=heroItem0, focused=true)
-//       AppButton (name=heroItem1)
-//       AppButton (name=heroItem2)
+//       Button (name=heroItem0, focused=true)
+//       Button (name=heroItem1)
+//       Button (name=heroItem2)
 //     CategoryRow (name=categoryRow1)
-//       AppLabel (name=catLabel, text=Movies)
-//       AppButton (name=catItem0)
+//       Label (name=catLabel, text=Movies)
+//       Button (name=catItem0)
 
 function buildTree(): UIElement {
   return el('Scene', {}, [
-    el('HomePage', { name: 'homePage' }, [
+    el('MainScreen', { name: 'homePage' }, [
       el('HeroCarousel', { name: 'heroCarousel' }, [
-        el('AppButton', { name: 'heroItem0', focused: 'true' }),
-        el('AppButton', { name: 'heroItem1' }),
-        el('AppButton', { name: 'heroItem2' }),
+        el('Button', { name: 'heroItem0', focused: 'true' }),
+        el('Button', { name: 'heroItem1' }),
+        el('Button', { name: 'heroItem2' }),
       ]),
       el('CategoryRow', { name: 'categoryRow1' }, [
-        el('AppLabel', { name: 'catLabel', text: 'Movies' }),
-        el('AppButton', { name: 'catItem0' }),
+        el('Label', { name: 'catLabel', text: 'Movies' }),
+        el('Button', { name: 'catItem0' }),
       ]),
     ]),
   ]);
@@ -52,7 +52,7 @@ describe('SelectorEngine', () => {
   describe('tag name', () => {
     it('matches by tag', () => {
       const tree = buildTree();
-      const results = engine.queryAll(tree, 'AppButton');
+      const results = engine.queryAll(tree, 'Button');
       expect(results).toHaveLength(4);
     });
 
@@ -74,28 +74,28 @@ describe('SelectorEngine', () => {
   describe('Tag#id', () => {
     it('matches tag and id together', () => {
       const tree = buildTree();
-      const result = engine.query(tree, 'AppButton#heroItem0');
+      const result = engine.query(tree, 'Button#heroItem0');
       expect(result).not.toBeNull();
-      expect(result!.tag).toBe('AppButton');
+      expect(result!.tag).toBe('Button');
       expect(result!.focused).toBe(true);
     });
 
     it('rejects wrong tag with right id', () => {
       const tree = buildTree();
-      expect(engine.query(tree, 'AppLabel#heroItem0')).toBeNull();
+      expect(engine.query(tree, 'Label#heroItem0')).toBeNull();
     });
   });
 
   describe('descendant combinator', () => {
     it('matches nested elements', () => {
       const tree = buildTree();
-      const results = engine.queryAll(tree, 'HomePage AppButton');
+      const results = engine.queryAll(tree, 'MainScreen Button');
       expect(results).toHaveLength(4);
     });
 
     it('matches deep descendants', () => {
       const tree = buildTree();
-      const results = engine.queryAll(tree, 'Scene AppButton');
+      const results = engine.queryAll(tree, 'Scene Button');
       expect(results).toHaveLength(4);
     });
   });
@@ -103,13 +103,13 @@ describe('SelectorEngine', () => {
   describe('child combinator >', () => {
     it('matches direct children only', () => {
       const tree = buildTree();
-      const results = engine.queryAll(tree, 'HeroCarousel > AppButton');
+      const results = engine.queryAll(tree, 'HeroCarousel > Button');
       expect(results).toHaveLength(3);
     });
 
     it('rejects non-direct descendants', () => {
       const tree = buildTree();
-      const results = engine.queryAll(tree, 'HomePage > AppButton');
+      const results = engine.queryAll(tree, 'MainScreen > Button');
       expect(results).toHaveLength(0);
     });
   });
@@ -117,7 +117,7 @@ describe('SelectorEngine', () => {
   describe('adjacent sibling +', () => {
     it('matches next sibling', () => {
       const tree = buildTree();
-      const result = engine.query(tree, '#heroItem0 + AppButton');
+      const result = engine.query(tree, '#heroItem0 + Button');
       expect(result).not.toBeNull();
       expect(result!.id).toBe('heroItem1');
     });
@@ -126,7 +126,7 @@ describe('SelectorEngine', () => {
   describe(':nth-child()', () => {
     it('matches by 1-based index', () => {
       const tree = buildTree();
-      const result = engine.query(tree, 'AppButton:nth-child(2)');
+      const result = engine.query(tree, 'Button:nth-child(2)');
       expect(result).not.toBeNull();
       expect(result!.id).toBe('heroItem1');
     });
@@ -144,7 +144,7 @@ describe('SelectorEngine', () => {
       const tree = buildTree();
       const result = engine.query(tree, '[text="Movies"]');
       expect(result).not.toBeNull();
-      expect(result!.tag).toBe('AppLabel');
+      expect(result!.tag).toBe('Label');
     });
   });
 });
