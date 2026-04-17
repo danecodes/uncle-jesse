@@ -335,24 +335,56 @@ export class RokuAdapter implements TVDevice {
     return this.uiNodeToElement(leaf);
   }
 
+  private static readonly MODAL_TAGS = ['dialog', 'overlay', 'modal', 'scrim'];
+
+  private isModalBranch(node: UiNode): boolean {
+    const tag = node.tag.toLowerCase();
+    const ext = (node.attrs['extends'] ?? '').toLowerCase();
+    return RokuAdapter.MODAL_TAGS.some((m) => tag.includes(m) || ext.includes(m));
+  }
+
   private findFocusLeaf(node: UiNode): UiNode | null {
-    const focusedChild = node.children.find(
+    const focusedChildren = node.children.filter(
       (c) => c.attrs['focused'] === 'true',
     );
-    if (focusedChild) {
-      // Recurse deeper into this branch
-      return this.findFocusLeaf(focusedChild) ?? focusedChild;
+
+    if (focusedChildren.length > 1) {
+      // Multiple focused branches (e.g., dialog over main content).
+      // Prefer the branch under a dialog/overlay/modal ancestor.
+      const modalBranch = focusedChildren.find((c) =>
+        this.isModalBranch(c) || this.hasModalAncestor(c),
+      );
+      const pick = modalBranch ?? focusedChildren[focusedChildren.length - 1];
+      return this.findFocusLeaf(pick) ?? pick;
+    }
+
+    if (focusedChildren.length === 1) {
+      return this.findFocusLeaf(focusedChildren[0]) ?? focusedChildren[0];
     }
 
     // No direct focused child. Check if any child has a focused descendant
     // (handles cases like PosterGrid where the container isn't focused).
-    for (const child of node.children) {
-      if (this.hasFocusedDescendant(child)) {
-        return this.findFocusLeaf(child);
-      }
+    // Same modal preference: if multiple children have focused descendants,
+    // prefer the modal branch.
+    const branchesWithFocus = node.children.filter((c) => this.hasFocusedDescendant(c));
+    if (branchesWithFocus.length > 1) {
+      const modalBranch = branchesWithFocus.find((c) =>
+        this.isModalBranch(c) || this.hasModalAncestor(c),
+      );
+      const pick = modalBranch ?? branchesWithFocus[branchesWithFocus.length - 1];
+      return this.findFocusLeaf(pick);
+    }
+    if (branchesWithFocus.length === 1) {
+      return this.findFocusLeaf(branchesWithFocus[0]);
     }
 
     return null;
+  }
+
+  private hasModalAncestor(node: UiNode): boolean {
+    // Check if any descendant is a modal-type component
+    if (this.isModalBranch(node)) return true;
+    return node.children.some((c) => this.hasModalAncestor(c));
   }
 
   private hasFocusedDescendant(node: UiNode): boolean {

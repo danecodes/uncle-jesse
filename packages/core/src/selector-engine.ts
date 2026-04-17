@@ -22,6 +22,11 @@ export class SelectorEngine {
   }
 
   queryAll(root: UIElement, selector: string): UIElement[] {
+    if (selector.startsWith('//') || selector.startsWith('./')) {
+      throw new Error(
+        `XPath selectors are not supported: "${selector}". Use CSS (e.g. replace "//Label[@text=\\"X\\"]" with ":has(Label[text=\\"X\\"])")`
+      );
+    }
     const segments = this.parse(selector);
     if (segments.length === 0) return [];
 
@@ -152,7 +157,12 @@ export class SelectorEngine {
   }
 
   private matchesPart(el: UIElement, part: SelectorPart): boolean {
-    if (part.tag && el.tag !== part.tag) return false;
+    if (part.tag) {
+      const tagLower = part.tag.toLowerCase();
+      const elTagLower = el.tag.toLowerCase();
+      const extendsAttr = (el.getAttribute('extends') ?? '').toLowerCase();
+      if (elTagLower !== tagLower && extendsAttr !== tagLower) return false;
+    }
     if (part.id && el.id !== part.id) return false;
 
     if (part.nthChild !== undefined) {

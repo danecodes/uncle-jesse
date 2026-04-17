@@ -139,20 +139,33 @@ export class LiveElement {
     timeout?: number;
   }): Promise<void> {
     const timeout = options?.timeout ?? 30000;
+    const noProgressLimit = 12;
+    const unresolvedPressLimit = options?.maxAttempts ?? 8;
     const start = Date.now();
     const visited = new Map<string, Set<Direction>>();
     const trail: string[] = [];
+    let unresolvedPresses = 0;
+    let lastDirection: Direction | null = null;
+    let lastGap: number | null = null;
+    let noProgressCount = 0;
 
     while (Date.now() - start < timeout) {
       // 1. Resolve the target element from a fresh tree
       const target = await this.resolve();
       if (!target) {
+        unresolvedPresses++;
+        if (unresolvedPresses > unresolvedPressLimit) {
+          throw new Error(
+            `Could not focus ${this.fullSelector}: target never resolved after ${unresolvedPresses} blind presses. The selector may be incorrect or the page/dialog may not have loaded.`
+          );
+        }
         // Element not in tree. Press down to scroll/trigger lazy loading.
         await this.device.press('down');
         trail.push('down');
         await sleep(200);
         continue;
       }
+      unresolvedPresses = 0; // reset once target is found
 
       // 2. Get the currently focused element
       const active = await this.device.getFocusedElement();
@@ -224,7 +237,27 @@ export class LiveElement {
         visited.set(fp, triedHere);
       }
 
-      // 7. Press that key
+      // 8. No-progress detection: if pressing in this direction isn't
+      //    closing the gap to the target, we're stalled.
+      const currentGap = candidates[0].gap;
+      if (direction === lastDirection && lastGap !== null) {
+        if (currentGap >= lastGap) {
+          noProgressCount++;
+          if (noProgressCount >= noProgressLimit) {
+            throw new Error(
+              `Could not focus ${this.fullSelector}: stalled — ${noProgressCount} presses of "${direction}" without closing axis gap (current: ${currentGap}, initial: ${lastGap}). Tried: ${trail.join(',')}`
+            );
+          }
+        } else {
+          noProgressCount = 0;
+        }
+      } else {
+        noProgressCount = 0;
+        lastGap = currentGap;
+      }
+      lastDirection = direction;
+
+      // 9. Press that key
       await this.device.press(direction);
       trail.push(direction);
 
