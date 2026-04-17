@@ -113,113 +113,85 @@ export class LiveElement {
     maxAttempts?: number;
     timeout?: number;
   }): Promise<void> {
-    const el = await this.resolve();
-    if (el?.focused) return;
-
-    // Check if the target's parent container is in the focus chain.
-    // Roku's focus model requires the parent to be focused before
-    // children can receive focus. If the parent isn't focused,
-    // we need to focus it first.
-    const target = await this.resolve();
-    if (target?.parent && !target.parent.focused) {
-      const parentId = target.parent.id ?? target.parent.tag;
-      const parentSelector = target.parent.id
-        ? `#${target.parent.id}`
-        : target.parent.tag;
-      const parentEl = new LiveElement(this.device, parentSelector);
-      const parentResolved = await parentEl.resolve();
-      if (parentResolved && !parentResolved.focused) {
-        await parentEl.focus(options);
-      }
-    }
-
-    // Re-check after parent focus
-    const afterParent = await this.resolve();
-    if (afterParent?.focused) return;
-
-    const maxAttempts = options?.maxAttempts ?? 20;
     const timeout = options?.timeout ?? 15000;
     const start = Date.now();
-    let lastFocusedId: string | undefined;
-    let stuckCount = 0;
-    const fallbackDirections: Direction[] = ['down', 'right', 'up', 'left'];
 
-    for (let i = 0; i < maxAttempts && Date.now() - start < timeout; i++) {
-      const current = await this.resolve();
-      if (!current) {
-        // Element not in the tree yet. Press down to scroll and trigger
-        // lazy loading, then check again.
+    while (Date.now() - start < timeout) {
+      // 1. Resolve the target element from a fresh tree
+      const target = await this.resolve();
+      if (!target) {
+        // Element not in tree. Press down to scroll/trigger lazy loading.
         await this.device.press('down');
         await sleep(200);
         continue;
       }
-      if (current.focused) return;
 
-      // Element exists but might be off-screen. Check viewport bounds.
-      const currentBounds = getBounds(current);
-      const isOnScreen = currentBounds
-        && currentBounds.x >= 0 && currentBounds.y >= 0
-        && currentBounds.x < 1920 && currentBounds.y < 1080
-        && currentBounds.x + currentBounds.width > 0
-        && currentBounds.y + currentBounds.height > 0;
-
-      if (!isOnScreen || current.getAttribute('visible') === 'false') {
-        const focused = await this.device.getFocusedElement();
-        if (focused) {
-          const direction = computeDirection(current, focused) ?? 'down';
-          await this.device.press(direction);
-          await sleep(200);
-          continue;
-        }
-      }
-
-      const focused = await this.device.getFocusedElement();
-      if (!focused) {
+      // 2. Get the currently focused element
+      const active = await this.device.getFocusedElement();
+      if (!active) {
         await sleep(200);
         continue;
       }
 
+      // 3. If target contains active or active contains target, done
+      if (target.focused) return;
+
+      // 4. Get absolute rects
+      const targetRect = getBounds(target);
+      const activeRect = getBounds(active);
+
+      if (!targetRect || !activeRect) {
+        await this.device.press('down');
+        await sleep(200);
+        continue;
+      }
+
+      // 5. Edge-to-edge comparison to determine direction
       let direction: Direction;
-
-      if (stuckCount >= 2) {
-        // Bounds-based navigation failed repeatedly. The target is likely
-        // off-screen in a scrollable container where bounds don't reflect
-        // the actual screen position. Cycle through directions to find
-        // one that moves focus toward the target.
-        direction = fallbackDirections[stuckCount % fallbackDirections.length];
+      if (targetRect.y + targetRect.height <= activeRect.y) {
+        direction = 'up';
+      } else if (targetRect.y >= activeRect.y + activeRect.height) {
+        direction = 'down';
+      } else if (targetRect.x + targetRect.width <= activeRect.x) {
+        direction = 'left';
+      } else if (targetRect.x >= activeRect.x + activeRect.width) {
+        direction = 'right';
       } else {
-        direction = computeDirection(current, focused) ?? 'down';
+        throw new Error(
+          `Unable to determine direction to focus ${this.fullSelector}`
+        );
       }
 
+      // 6. Press that key
       await this.device.press(direction);
-      await sleep(200);
 
-      const newFocused = await this.device.getFocusedElement();
-      const newId = newFocused?.id ?? newFocused?.getAttribute('title') ?? newFocused?.tag;
-
-      if (newId === lastFocusedId) {
-        stuckCount++;
-
-        if (stuckCount === 1) {
-          // First stuck: try the secondary axis
-          const altDirection = computeAlternateDirection(current, focused);
-          if (altDirection) {
-            await this.device.press(altDirection);
-            await sleep(200);
-          }
+      // 7. Poll up to 2s for focus to actually change
+      const prevId = active.id ?? active.getAttribute('title') ?? active.tag;
+      const pollStart = Date.now();
+      let moved = false;
+      while (Date.now() - pollStart < 2000) {
+        await sleep(100);
+        const newActive = await this.device.getFocusedElement();
+        const newId = newActive?.id ?? newActive?.getAttribute('title') ?? newActive?.tag;
+        if (newId !== prevId) {
+          moved = true;
+          break;
         }
-      } else {
-        stuckCount = 0;
       }
 
-      lastFocusedId = newId;
+      // 8. If focus didn't move, throw
+      if (!moved) {
+        throw new Error(
+          `Focus didn't move after pressing ${direction} toward ${this.fullSelector}`
+        );
+      }
     }
 
     const final = await this.resolve();
     if (final?.focused) return;
 
     throw new Error(
-      `Could not focus ${this.fullSelector} after ${maxAttempts} attempts`
+      `Could not focus ${this.fullSelector} within ${timeout}ms`
     );
   }
 
@@ -622,118 +594,43 @@ class IndexedLiveElement extends LiveElement {
   }
 
   async focus(options?: { maxAttempts?: number; timeout?: number }): Promise<void> {
-    const existing = await this.resolve();
-    if (existing?.focused) return;
-
-    if (existing) {
-      // Element exists. Always try scrolling into view first for indexed
-      // elements since they may be off-screen even when bounds and visible
-      // look normal (bounds are within the tree but outside the viewport).
-      const bounds = getBounds(existing);
-      const isOnScreen = bounds
-        && bounds.x >= 0 && bounds.y >= 0
-        && bounds.x < 1920 && bounds.y < 1080
-        && bounds.x + bounds.width > 0
-        && bounds.y + bounds.height > 0;
-
-      if (!isOnScreen) {
-        await this.scrollIntoView(options);
-        const afterScroll = await this.resolve();
-        if (afterScroll?.focused) return;
-      }
-
-      return super.focus({ ...options, maxAttempts: options?.maxAttempts ?? 30 });
-    }
-
-    // Target index doesn't exist yet (lazy-loaded content).
-    // Focus the last existing item, then press down to trigger loading.
-    const maxAttempts = options?.maxAttempts ?? 30;
-    const timeout = options?.timeout ?? 30000;
-    const start = Date.now();
-    let lastCount = 0;
-    let stuckIterations = 0;
-
-    for (let i = 0; i < maxAttempts && Date.now() - start < timeout; i++) {
-      const all = await this.device.$$(this.baseSelector);
-      const count = all.length;
-
-      if (count > this.index) {
-        // Target index now exists, focus it normally
-        return super.focus(options);
-      }
-
-      if (count === lastCount) {
-        stuckIterations++;
-        if (stuckIterations > 5) {
-          throw new Error(
-            `Could not load element at index ${this.index} of ${this.baseSelector}. ` +
-            `Collection stuck at ${count} items.`
-          );
-        }
-      } else {
-        stuckIterations = 0;
-      }
-      lastCount = count;
-
-      // Focus the last item in the collection to scroll near the bottom
-      if (count > 0) {
-        const lastItem = all[count - 1];
-        if (lastItem && !lastItem.focused) {
-          const lastEl = new LiveElement(this.device, this.baseSelector);
-          // Press down to move toward the end and trigger lazy loading
-          await this.device.press('down');
-          await sleep(300);
-        }
-      } else {
-        await this.device.press('down');
-        await sleep(300);
-      }
-    }
-
-    throw new Error(
-      `Could not focus element at index ${this.index} of ${this.baseSelector} after ${maxAttempts} attempts`
-    );
-  }
-
-  private async scrollIntoView(options?: { timeout?: number }): Promise<void> {
     const timeout = options?.timeout ?? 15000;
     const start = Date.now();
 
     while (Date.now() - start < timeout) {
-      // Re-fetch the collection to get fresh positions
-      const all = await this.device.$$(this.baseSelector);
-      const target = all[this.index];
-      if (!target) return; // not loaded yet, caller handles this
+      const existing = await this.resolve();
 
-      const bounds = getBounds(target);
-      const isOnScreen = bounds
-        && bounds.x >= 0 && bounds.y >= 0
-        && bounds.x < 1920 && bounds.y < 1080
-        && bounds.x + bounds.width > 0
-        && bounds.y + bounds.height > 0;
+      if (existing?.focused) return;
 
-      if (isOnScreen) return;
-
-      // Before pressing down, make sure focus is within this collection.
-      // If focus escaped to a sidebar or other UI, re-anchor it.
-      let focusInCollection = false;
-      for (const item of all) {
-        if (item.focused) {
-          focusInCollection = true;
-          break;
-        }
+      if (existing) {
+        // Target index exists in tree, use the standard focus algorithm
+        return super.focus(options);
       }
 
-      if (!focusInCollection && all.length > 0) {
-        // Focus the last visible item in the collection to anchor
-        const lastIdx = all.length - 1;
-        const lastEl = new IndexedLiveElement(this.device, this.baseSelector, lastIdx);
-        await lastEl.focus({ maxAttempts: 10 });
+      // Target index doesn't exist yet (lazy-loaded content).
+      // Focus the last element in the collection using the standard
+      // algorithm, then press down to trigger loading more items.
+      const all = await this.device.$$(this.baseSelector);
+      if (all.length > 0) {
+        const lastEl = new IndexedLiveElement(this.device, this.baseSelector, all.length - 1);
+        try {
+          await lastEl.focus({ timeout: 5000 });
+        } catch {
+          // couldn't focus last item, press down anyway
+        }
       }
 
       await this.device.press('down');
       await sleep(300);
+
+      // Re-check if target loaded
+      const recheck = await this.resolve();
+      if (recheck?.focused) return;
     }
+
+    throw new Error(
+      `Could not focus element at index ${this.index} of ${this.baseSelector} within ${timeout}ms`
+    );
   }
 }
 
@@ -870,56 +767,6 @@ function getBounds(el: {
   }
 
   return { x, y, width: rect.width, height: rect.height };
-}
-
-function computeDirection(
-  target: { bounds?: Rect; getAttribute(n: string): string | undefined },
-  current: { bounds?: Rect; getAttribute(n: string): string | undefined },
-): Direction | null {
-  const targetRect = getBounds(target);
-  const currentRect = getBounds(current);
-  if (!targetRect || !currentRect) return 'down'; // fallback if no bounds
-
-  const targetCenterX = targetRect.x + targetRect.width / 2;
-  const targetCenterY = targetRect.y + targetRect.height / 2;
-  const currentCenterX = currentRect.x + currentRect.width / 2;
-  const currentCenterY = currentRect.y + currentRect.height / 2;
-
-  const dx = targetCenterX - currentCenterX;
-  const dy = targetCenterY - currentCenterY;
-
-  // Move along the axis with the greater distance
-  if (Math.abs(dy) >= Math.abs(dx)) {
-    return dy < 0 ? 'up' : 'down';
-  }
-  return dx < 0 ? 'left' : 'right';
-}
-
-function computeAlternateDirection(
-  target: { bounds?: Rect; getAttribute(n: string): string | undefined },
-  current: { bounds?: Rect; getAttribute(n: string): string | undefined },
-): Direction | null {
-  const targetRect = getBounds(target);
-  const currentRect = getBounds(current);
-  if (!targetRect || !currentRect) return null;
-
-  const dx = (targetRect.x + targetRect.width / 2) - (currentRect.x + currentRect.width / 2);
-  const dy = (targetRect.y + targetRect.height / 2) - (currentRect.y + currentRect.height / 2);
-
-  // Return the secondary axis direction
-  if (Math.abs(dy) >= Math.abs(dx)) {
-    if (Math.abs(dx) < 5) return null;
-    return dx < 0 ? 'left' : 'right';
-  }
-  if (Math.abs(dy) < 5) return null;
-  return dy < 0 ? 'up' : 'down';
-}
-
-function describeBounds(el: { id?: string; tag: string; bounds?: Rect; getAttribute(n: string): string | undefined }): string {
-  const name = el.id ?? el.getAttribute('title') ?? el.tag;
-  const rect = getBounds(el);
-  if (rect) return `${name} at (${rect.x},${rect.y})`;
-  return name;
 }
 
 function captureIdentity(el: { tag: string; getAttribute(n: string): string | undefined }): Record<string, string | undefined> {

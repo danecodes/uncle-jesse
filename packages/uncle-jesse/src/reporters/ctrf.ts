@@ -116,7 +116,7 @@ export class CtrfReporter implements Reporter {
       results: {
         tool: {
           name: 'uncle-jesse',
-          version: '1.1.5',
+          version: '1.2.0',
         },
         summary: {
           tests: this.tests.length,
