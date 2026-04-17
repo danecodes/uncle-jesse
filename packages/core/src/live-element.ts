@@ -141,7 +141,6 @@ export class LiveElement {
       const activeRect = getBounds(active);
 
       if (!targetRect || !activeRect) {
-        await this.device.press('down');
         await sleep(200);
         continue;
       }
@@ -189,11 +188,10 @@ export class LiveElement {
         }
       }
 
-      // 8. If focus didn't move, throw
+      // 8. If focus didn't move, re-loop to recompute direction
+      //    from the new tree state. Outer timeout handles truly stuck cases.
       if (!moved) {
-        throw new Error(
-          `Focus didn't move after pressing ${direction} toward ${this.fullSelector}`
-        );
+        continue;
       }
     }
 
