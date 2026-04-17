@@ -97,6 +97,12 @@ export class LiveElement {
     return chunks.join('\n');
   }
 
+  async getRect(): Promise<Rect | null> {
+    const el = await this.resolve();
+    if (!el) return null;
+    return getBounds(el);
+  }
+
   async isExisting(): Promise<boolean> {
     const el = await this.resolve();
     return el !== null;
@@ -134,6 +140,8 @@ export class LiveElement {
   }): Promise<void> {
     const timeout = options?.timeout ?? 15000;
     const start = Date.now();
+    const visited = new Map<string, Set<Direction>>();
+    const trail: string[] = [];
 
     while (Date.now() - start < timeout) {
       // 1. Resolve the target element from a fresh tree
@@ -141,6 +149,7 @@ export class LiveElement {
       if (!target) {
         // Element not in tree. Press down to scroll/trigger lazy loading.
         await this.device.press('down');
+        trail.push('down');
         await sleep(200);
         continue;
       }
@@ -155,18 +164,21 @@ export class LiveElement {
       // 3. Check if target itself is focused
       if (target.focused) return;
 
-      // 4. Get absolute rects
+      // 4. Cycle detection: track visited positions and which directions
+      //    we've already tried from each position. When the greedy best
+      //    direction has been tried before from this node, try alternates.
+      const fp = elementFingerprint(active);
+
+      // 5. Get absolute rects
       const targetRect = getBounds(target);
       const activeRect = getBounds(active);
 
       if (!targetRect || !activeRect) {
-        throw new Error(
-          `Cannot compute bounds for focus navigation toward ${this.fullSelector}`
-        );
+        await sleep(200);
+        continue;
       }
 
-      // 5. Collect all valid directions with their edge gap distance.
-      //    Pick the direction with the smallest gap.
+      // 6. Collect all valid directions sorted by smallest edge gap.
       const candidates: Array<{ direction: Direction; gap: number }> = [];
 
       if (targetRect.y + targetRect.height <= activeRect.y) {
@@ -183,19 +195,41 @@ export class LiveElement {
       }
 
       if (candidates.length === 0) {
-        throw new Error(
-          `Unable to determine direction to focus ${this.fullSelector}`
-        );
+        await sleep(200);
+        continue;
       }
 
       candidates.sort((a, b) => a.gap - b.gap);
-      const direction = candidates[0].direction;
 
-      // 6. Press that key
+      // 7. Pick direction, skipping directions already tried from this node.
+      const triedHere = fp ? (visited.get(fp) ?? new Set<Direction>()) : new Set<Direction>();
+      let direction: Direction | null = null;
+      for (const candidate of candidates) {
+        if (!triedHere.has(candidate.direction)) {
+          direction = candidate.direction;
+          break;
+        }
+      }
+
+      if (!direction) {
+        // All directions from this node have been tried -- we're stuck.
+        throw new Error(
+          `Could not focus ${this.fullSelector}: navigation cycled at ${fp} after ${trail.length} presses (tried: ${trail.join(',')})`
+        );
+      }
+
+      // Record that we tried this direction from this position
+      if (fp) {
+        triedHere.add(direction);
+        visited.set(fp, triedHere);
+      }
+
+      // 7. Press that key
       await this.device.press(direction);
+      trail.push(direction);
 
-      // 7. Poll up to 2s for focus to actually change
-      const prevId = elementFingerprint(active);
+      // 8. Poll up to 2s for focus to actually change
+      const prevId = fp;
       const pollStart = Date.now();
       let moved = false;
       while (Date.now() - pollStart < 2000) {
@@ -208,7 +242,7 @@ export class LiveElement {
         }
       }
 
-      // 8. If focus didn't move, re-loop to recompute direction
+      // 9. If focus didn't move, re-loop to recompute direction
       //    from the new tree state. Outer timeout handles truly stuck cases.
       if (!moved) {
         continue;
@@ -219,7 +253,7 @@ export class LiveElement {
     if (final?.focused) return;
 
     throw new Error(
-      `Could not focus ${this.fullSelector} within ${timeout}ms`
+      `Could not focus ${this.fullSelector} within ${timeout}ms (tried: ${trail.join(',')})`
     );
   }
 
@@ -742,7 +776,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-interface Rect {
+export interface Rect {
   x: number;
   y: number;
   width: number;
@@ -845,6 +879,8 @@ function elementFingerprint(
   if (name) return name;
   const id = el.id ?? el.getAttribute('id');
   if (id) return id;
+  const uiElementId = el.getAttribute('uiElementId');
+  if (uiElementId) return uiElementId;
   const title = el.getAttribute('title');
   if (title) return title;
   // Fallback: compound key using index + bounds to distinguish anonymous siblings

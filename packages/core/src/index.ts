@@ -12,6 +12,7 @@ export { UIElement, setDefaultQueryEngine } from './ui-element.js';
 export type { ElementQueryEngine } from './ui-element.js';
 export { SelectorEngine } from './selector-engine.js';
 export { LiveElement, ElementCollection, TypedElementCollection, BaseComponent, BasePage } from './live-element.js';
+export type { Rect } from './live-element.js';
 export { defineConfig, loadConfig, loadConfigFromFile } from './config.js';
 export { RegistryState } from './registry.js';
 export type { RegistryData, OdcClient } from './registry.js';

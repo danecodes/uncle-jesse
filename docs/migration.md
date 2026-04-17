@@ -14,6 +14,8 @@ How to move a Roku E2E test suite from the Appium stack (WebdriverIO + appium-ro
 | `element.click()` | `element.select()` |
 | `element.waitForDisplayed()` | `element.toBeDisplayed()` |
 | `driver.sendKeys(Key.Right)` | `device.press('right')` |
+| `driver.waitUntil(fn)` | `device.waitUntil(fn)` |
+| `driver.pause(1000)` | `device.pause(1000)` |
 
 ## Selectors
 
@@ -180,7 +182,18 @@ const device = await pool.acquire();
 pool.release(device);
 ```
 
+## driver.waitUntil() and pause()
+
+```typescript
+// Before
+await driver.waitUntil(() => someCondition(), { timeout: 5000 });
+await driver.pause(1000);
+
+// After (same API)
+await device.waitUntil(() => someCondition(), { timeout: 5000 });
+await device.pause(1000);
+```
+
 ## What's not yet supported
 
 - Selenium Grid protocol (DevicePool replaces this with a simpler model)
-- `driver.waitUntil()` (use `waitForCondition()` or assertion polling instead)

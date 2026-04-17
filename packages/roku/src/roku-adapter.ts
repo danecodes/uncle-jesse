@@ -359,6 +359,28 @@ export class RokuAdapter implements TVDevice {
     }, { ...options, label: 'waitForCondition' });
   }
 
+  async waitUntil(
+    predicate: () => Promise<boolean>,
+    options?: { timeout?: number; interval?: number; timeoutMsg?: string },
+  ): Promise<void> {
+    const timeout = options?.timeout ?? 10000;
+    const interval = options?.interval ?? 200;
+    const start = Date.now();
+
+    while (Date.now() - start < timeout) {
+      if (await predicate()) return;
+      await new Promise((r) => setTimeout(r, interval));
+    }
+
+    throw new Error(
+      options?.timeoutMsg ?? `waitUntil timed out after ${timeout}ms`
+    );
+  }
+
+  async pause(ms: number): Promise<void> {
+    await new Promise((r) => setTimeout(r, ms));
+  }
+
   async getPageSourceXml(): Promise<string> {
     return this.client.queryAppUi();
   }

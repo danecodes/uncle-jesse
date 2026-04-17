@@ -41,7 +41,9 @@ export interface TVDevice {
   waitForElement(selector: string, options?: WaitOptions): Promise<UIElement>;
   waitForFocus(selector: string, options?: WaitOptions): Promise<UIElement>;
   waitForCondition<T>(predicate: () => Promise<T | null | false>, options?: WaitOptions): Promise<T>;
+  waitUntil(predicate: () => Promise<boolean>, options?: { timeout?: number; interval?: number; timeoutMsg?: string }): Promise<void>;
   waitForStable(options?: WaitForStableOptions): Promise<void>;
+  pause(ms: number): Promise<void>;
 
   deepLink(channelId: string, contentId: string, mediaType?: string): Promise<void>;
   screenshot(): Promise<Buffer>;

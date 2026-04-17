@@ -45,6 +45,10 @@ interface TVDevice {
   waitForElement(selector: string, options?: WaitOptions): Promise<UIElement>;
   waitForFocus(selector: string, options?: WaitOptions): Promise<UIElement>;
   waitForCondition<T>(predicate: () => Promise<T | null | false>, options?: WaitOptions): Promise<T>;
+  waitUntil(predicate: () => Promise<boolean>, options?: { timeout?: number; interval?: number; timeoutMsg?: string }): Promise<void>;
+
+  // Timing
+  pause(ms: number): Promise<void>;
 
   // Input
   sendInput(params: Record<string, string | number>): Promise<void>;
@@ -90,6 +94,7 @@ class LiveElement {
   // State
   getAttribute(name: string): Promise<string | undefined>;
   getText(): Promise<string>;   // reads text attr, or walks descendant Label/Button elements
+  getRect(): Promise<Rect | null>; // absolute screen bounds (walks parent translations)
   isExisting(): Promise<boolean>;
   isDisplayed(): Promise<boolean>;
   isFocused(): Promise<boolean>;
