@@ -1,8 +1,8 @@
 # Uncle Jesse
 
-E2E testing framework for smart TVs. TypeScript, off-device, over HTTP. Roku first, with other platforms planned.
+E2E testing framework for smart TVs. Roku first. TypeScript, runs off-device over HTTP.
 
-Uncle Jesse talks directly to the Roku External Control Protocol (ECP) on port 8060. No Appium, no WebdriverIO, no Selenium Grid, no Java runtime. Your tests run in Node and send HTTP requests to the device.
+Your tests run in Node and talk to the Roku ECP API on port 8060. No Appium, no WebdriverIO, no Selenium Grid, no Java.
 
 ## Install
 
@@ -42,7 +42,7 @@ await tv.disconnect();
 
 ## LiveElement
 
-LiveElement is a persistent reference to a UI element that re-queries the device on each call. It supports chained selectors, actions, and built-in assertions with polling. See the [API reference](./docs/api.md#liveelement) for the full method list.
+LiveElement is a persistent reference to a UI element. It re-queries the device on every call, so you never work with stale data. Full method list in the [API reference](./docs/api.md#liveelement).
 
 ```typescript
 import { LiveElement } from '@danecodes/uncle-jesse-core';
@@ -94,11 +94,15 @@ await rows.toHaveTextInOrder(['Featured', /Recent/, 'Popular']);
 // Iteration
 const titles = await rows.map(async (el) => el.getText());
 const visible = await rows.filter(async (el) => el.isDisplayed());
+
+// Typed collections
+const cards = home.$$('LinearCard', CardComponent);
+const firstCard = cards.get(0);      // returns a CardComponent instance
 ```
 
 ## Stability and Loading
 
-Wait for the UI to stop changing before proceeding. By default uses roku-ecp's tree-level stability check. Pass app-specific indicators and tracked attributes for custom stability definitions.
+Wait for the UI to stop changing before you do anything else. By default this just checks that the tree hasn't changed between two consecutive polls. You can also pass loading indicator selectors and tracked attributes if your app needs something more specific.
 
 ```typescript
 // Default: wait until the UI tree stops changing
@@ -115,7 +119,7 @@ await tv.waitForStable({
 
 ## ECP Input Events
 
-Send arbitrary events to the Roku app via ECP `/input`. Used for media transport controls, voice commands, and custom app events.
+Send events to the Roku app via the ECP `/input` endpoint. Transport controls, voice commands, custom app events, etc.
 
 ```typescript
 await tv.sendInput({ command: 'pause', type: 'transport' });
@@ -144,7 +148,7 @@ await tv.waitForAppState('dev', 'foreground');
 
 ## Page Objects
 
-`BasePage` and `BaseComponent` provide the same structure used in production Roku test suites with WebdriverIO. If you're migrating from an Appium-based setup, this is the API you want. See the [migration guide](./docs/migration.md) for a detailed walkthrough. For simpler cases, `TVPage` in `@danecodes/uncle-jesse-test` provides a lighter base class that takes a device directly.
+If you're coming from WebdriverIO, `BasePage` and `BaseComponent` work the same way you're used to. See the [migration guide](./docs/migration.md). For simpler tests, `TVPage` in `@danecodes/uncle-jesse-test` is a lighter base class that takes a device directly.
 
 ```typescript
 import { BasePage, BaseComponent } from '@danecodes/uncle-jesse-core';
@@ -193,24 +197,9 @@ it('navigate to search', async () => {
 });
 ```
 
-## Element Collections
-
-`$$` returns an `ElementCollection` with `.get(index)` and async `.length`. You can also pass a component class to get typed results.
-
-```typescript
-const rows = home.$$('RowListItem');
-const count = await rows.length;     // number of matching elements
-const first = rows.get(0);           // LiveElement for the first match
-await first.toBeDisplayed();
-
-// Typed collections
-const cards = home.$$('LinearCard', CardComponent);
-const firstCard = cards.get(0);      // returns a CardComponent instance
-```
-
 ## Selectors
 
-Uncle Jesse uses CSS-like selectors against the Roku SceneGraph tree. See [Writing Testable Channels](./docs/testable-channels.md) for how to structure your app for best results.
+CSS-like selectors against the Roku SceneGraph tree. See [Writing Testable Channels](./docs/testable-channels.md) for tips on structuring your app so selectors don't suck.
 
 | Pattern | Example | Matches |
 |---------|---------|---------|
@@ -224,12 +213,13 @@ Uncle Jesse uses CSS-like selectors against the Roku SceneGraph tree. See [Writi
 | Tag + attribute | `Label[text="Home"]` | Label with text="Home" |
 | Adjacent sibling | `Module + Module` | Module preceded by another Module |
 | nth-child | `NavTab:nth-child(2)` | Second NavTab child |
+| :has() | `Item:has([text="Fantasy"])` | Item containing a descendant with that text |
 
-Attribute values with spaces work: `[text="Add to List"]`.
+Attribute values with spaces work: `[text="Add to List"]`. `:has()` supports nesting: `A:has(B:has(C))`.
 
 ## focusPath
 
-A chainable builder for verifying D-pad spatial navigation. Runs every step and collects all failures instead of stopping on the first one. After each key press, it waits for focus to stabilize (two consecutive tree queries agreeing) before checking the expectation. For details on how Roku handles focus, see [Roku Focus Behavior](./docs/roku-focus.md).
+Chainable builder for verifying D-pad navigation. It runs every step and collects all failures instead of bailing on the first one. After each key press, it waits for focus to stabilize (two consecutive tree polls agreeing) before checking your expectation. See [Roku Focus Behavior](./docs/roku-focus.md) for the gory details on how Roku reports focus.
 
 ```typescript
 import { focusPath } from '@danecodes/uncle-jesse-test';
@@ -254,7 +244,7 @@ Step 1: After pressing RIGHT, expected focus on [title="featured-item-2"]
 
 ## Visual Replay Debugger
 
-Pass `{ record: true }` to focusPath to capture a device screenshot and UI tree snapshot at each step. The output is a self-contained HTML file with a scrubber, step details, and side-by-side screenshot and tree view.
+Pass `{ record: true }` to focusPath and it captures a screenshot and UI tree snapshot at every step. You get a self-contained HTML file with a scrubber so you can step through the navigation and see exactly where focus went wrong.
 
 ```typescript
 const result = await focusPath(tv, { record: true, testName: 'grid-nav' })
@@ -270,7 +260,7 @@ if (result.replay) {
 
 ## Screenshot on Failure
 
-When using the vitest `tv` fixture, a device screenshot is automatically saved to `test-results/` when a test fails. Configure with:
+When a test fails, a screenshot is automatically saved to `test-results/`. Configure with:
 
 ```typescript
 import { setScreenshotOnFailure } from '@danecodes/uncle-jesse-test';
@@ -279,7 +269,7 @@ setScreenshotOnFailure(true, './test-results');
 
 ## Log Capture
 
-Stream and parse BrightScript console output during test runs using [@danecodes/roku-log](https://github.com/danecodes/roku-log). Captures errors, crashes, backtraces, and performance beacons as structured data.
+Stream BrightScript console output during tests via [@danecodes/roku-log](https://github.com/danecodes/roku-log). Errors, crashes, backtraces, and performance beacons get parsed into structured data you can query and assert against.
 
 ```typescript
 const tv = new RokuAdapter({ name: 'test', ip: '192.168.1.100' });
@@ -310,7 +300,7 @@ tv.stopLogCapture();
 
 ## CTRF Reporting
 
-Generate [CTRF](https://ctrf.io) (Common Test Reporting Format) reports for integration with Databricks, CI dashboards, and cross-team test analytics.
+[CTRF](https://ctrf.io) (Common Test Reporting Format) reports. Useful if you feed test results into Databricks or CI dashboards.
 
 ```typescript
 import { CtrfReporter } from 'uncle-jesse';
@@ -328,11 +318,11 @@ const reporter = new CtrfReporter({
 reporter.save(); // writes test-results/ctrf-report.json
 ```
 
-The report includes device name, environment metadata, focusPath step failures, and maps to the CTRF schema for Parquet ingestion.
+The output includes device name, environment metadata, and focusPath step failures. It follows the CTRF schema so you can ingest it as Parquet or whatever your pipeline expects.
 
 ## Multi-Device Parallel Testing
 
-`DevicePool` manages a pool of devices for parallel test execution. Use `poolTest` instead of `test` to automatically acquire and release devices.
+Run tests across multiple Rokus at once. `DevicePool` handles allocation. Use `poolTest` instead of `test` and the device gets acquired and released for you.
 
 ```typescript
 // setup.ts
@@ -359,7 +349,7 @@ test('navigate grid', async ({ tv }) => {
 
 ## File Operations (ODC)
 
-Read and write files on the Roku device filesystem. Requires `@danecodes/roku-odc` and an app with the ODC component injected.
+Read and write files on the device. Requires `@danecodes/roku-odc` and an app with the ODC component injected.
 
 ```typescript
 import { OdcClient } from '@danecodes/roku-odc';
@@ -374,7 +364,7 @@ const files = await tv.listFiles('tmp:/');
 
 ## Mock API Server
 
-Use `@danecodes/roku-mock` for deterministic test data. Uncle Jesse provides `MockTestHelper` to manage the server lifecycle and verify API calls.
+`@danecodes/roku-mock` gives you a local HTTP mock server so your tests don't hit real APIs. `MockTestHelper` manages the server lifecycle.
 
 ```typescript
 import { MockTestHelper } from '@danecodes/uncle-jesse-test';
@@ -432,11 +422,11 @@ Launch directly to a specific content item:
 await tv.deepLink('dev', 'content-123', 'movie');
 ```
 
-The adapter waits for the target app to become active before returning.
+The call blocks until the app is in the foreground.
 
 ## Registry State
 
-Inject registry state before launching the app. This lets you skip onboarding flows, set language preferences, or configure any app state that's stored in the Roku registry. Compatible with apps that handle the `odc_registry` launch param convention.
+Pre-load registry values before launching. Skip onboarding, set language prefs, configure feature flags -- anything your app reads from the registry on launch. Works with apps that handle the `odc_registry` launch param.
 
 ```typescript
 import { RegistryState } from '@danecodes/uncle-jesse-core';
@@ -450,35 +440,6 @@ const custom = new RegistryState()
   .set('APP_CONFIG', 'isFirstLaunch', 'false')
   .set('SETTINGS', 'subtitleLanguage', 'en');
 await tv.launchApp('dev', custom.toLaunchParams());
-```
-
-## Multi-Device Parallel Testing
-
-`DevicePool` manages a pool of devices for parallel test execution. Tests acquire a device from the pool, run against it, and release it when done. If all devices are busy, the next test waits until one becomes available.
-
-```typescript
-import { DevicePool } from '@danecodes/uncle-jesse-core';
-import { RokuAdapter } from '@danecodes/uncle-jesse-roku';
-
-const devices = [
-  new RokuAdapter({ name: 'roku-1', ip: '192.168.1.50' }),
-  new RokuAdapter({ name: 'roku-2', ip: '192.168.1.51' }),
-  new RokuAdapter({ name: 'roku-3', ip: '192.168.1.52' }),
-];
-
-for (const d of devices) await d.connect();
-const pool = new DevicePool(devices, { acquireTimeout: 30000 });
-
-// In each test worker
-const device = await pool.acquire();
-try {
-  // run tests against device
-} finally {
-  pool.release(device);
-}
-
-// When done
-await pool.drain();
 ```
 
 ## Architecture
@@ -513,7 +474,7 @@ Optional integrations:
 
 ## Examples
 
-The [`examples/`](./examples) directory has working test suites that run against a bundled test channel:
+Working test suites in [`examples/`](./examples) that run against a bundled test channel:
 
 - `roku-basic` - smoke tests: launch, navigate, select, back
 - `roku-focus-path` - focusPath with title-based selectors and replay recording
@@ -522,7 +483,7 @@ The [`examples/`](./examples) directory has working test suites that run against
 
 ## Docs
 
-See the [`docs/`](./docs) directory for detailed guides:
+More in [`docs/`](./docs):
 
 - [Migration from Appium/WebdriverIO](./docs/migration.md)
 - [API Reference](./docs/api.md)

@@ -1,6 +1,6 @@
 {
   "name": "uncle-jesse",
-  "version": "1.2.4",
+  "version": "1.2.9",
   "type": "module",
   "bin": {
     "uncle-jesse": "./bin/uncle-jesse.js"

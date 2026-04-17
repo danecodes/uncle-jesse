@@ -1,6 +1,6 @@
 # Migrating from Appium/WebdriverIO
 
-This guide covers migrating a Roku E2E test suite from the Appium stack (WebdriverIO + appium-roku-driver + Selenium Grid) to Uncle Jesse. For the full API, see [API Reference](./api.md). For selector and focus details, see [Roku Focus Behavior](./roku-focus.md).
+How to move a Roku E2E test suite from the Appium stack (WebdriverIO + appium-roku-driver + Selenium Grid) to Uncle Jesse. See also: [API Reference](./api.md), [Roku Focus Behavior](./roku-focus.md).
 
 ## What changes
 
@@ -62,7 +62,7 @@ export class HeroCarousel extends BaseComponent {
 
 ## Element assertions
 
-Replace WebdriverIO assertion patterns with LiveElement methods. They behave the same way, polling until the condition is met or the timeout expires.
+Replace WebdriverIO assertion patterns with LiveElement methods. Same behavior -- they poll until the condition is met or timeout.
 
 ```typescript
 // Before

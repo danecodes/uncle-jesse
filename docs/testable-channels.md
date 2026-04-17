@@ -1,6 +1,6 @@
 # Writing Testable Channels
 
-Uncle Jesse queries the SceneGraph XML tree that Roku exposes over ECP at `/query/app-ui`. What your tests can see and interact with depends on how your channel's components are structured. For details on how Roku reports focus in this tree, see [Roku Focus Behavior](./roku-focus.md). For the selector syntax, see [API Reference](./api.md).
+Uncle Jesse queries the SceneGraph XML tree that Roku exposes at `/query/app-ui`. What your tests can see depends on how your components are structured. See also: [Roku Focus Behavior](./roku-focus.md), [API Reference](./api.md).
 
 ## How ECP exposes your UI
 

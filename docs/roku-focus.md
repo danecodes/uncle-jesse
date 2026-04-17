@@ -1,6 +1,6 @@
 # Roku Focus Behavior
 
-Notes on how Roku handles focus in the SceneGraph tree, learned from testing against real devices. For how to structure your channel to work well with these behaviors, see [Writing Testable Channels](./testable-channels.md). For the API that handles focus, see [API Reference](./api.md#liveelement).
+How Roku actually handles focus in the SceneGraph tree, based on testing against real devices. See also: [Writing Testable Channels](./testable-channels.md), [API Reference](./api.md#liveelement).
 
 ## Focus chain
 
@@ -45,7 +45,7 @@ ContentNode fields (`title`, `id`, `description`) appear as attributes on the re
 
 After pressing a key, the focus change in the SceneGraph tree is not instantaneous. RowList animations, page transitions, and other effects mean the tree state at the moment ECP returns the keypress response may not reflect the final focus position.
 
-Uncle Jesse's focusPath handles this with stable-focus detection: after each key press, it queries the tree twice and waits until two consecutive snapshots agree on the focused element. This typically settles in 2-3 polls (300-450ms) without needing fixed delays.
+focusPath handles this by polling the tree after each key press until two consecutive snapshots agree on the focused element. Usually settles in 2-3 polls (300-450ms), no fixed delays needed.
 
 ## Home screen
 

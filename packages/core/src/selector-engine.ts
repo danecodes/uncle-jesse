@@ -7,6 +7,7 @@ interface SelectorPart {
   id?: string;
   attrs?: Record<string, string | null>;
   nthChild?: number;
+  has?: string;
 }
 
 interface SelectorSegment {
@@ -57,12 +58,12 @@ export class SelectorEngine {
   private tokenize(selector: string): string[] {
     const tokens: string[] = [];
     let current = '';
+    let parenDepth = 0;
 
     for (let i = 0; i < selector.length; i++) {
       const ch = selector[i];
 
       if (ch === '[') {
-        // consume until closing ]
         const end = selector.indexOf(']', i);
         if (end === -1) {
           current += selector.slice(i);
@@ -73,19 +74,16 @@ export class SelectorEngine {
         continue;
       }
 
-      if (ch === ' ' || ch === '\t') {
-        if (current) {
-          tokens.push(current);
-          current = '';
-        }
+      if (ch === '(') { parenDepth++; current += ch; continue; }
+      if (ch === ')') { parenDepth--; current += ch; continue; }
+
+      if (parenDepth === 0 && (ch === ' ' || ch === '\t')) {
+        if (current) { tokens.push(current); current = ''; }
         continue;
       }
 
-      if (ch === '>' || ch === '+') {
-        if (current) {
-          tokens.push(current);
-          current = '';
-        }
+      if (parenDepth === 0 && (ch === '>' || ch === '+')) {
+        if (current) { tokens.push(current); current = ''; }
         tokens.push(ch);
         continue;
       }
@@ -101,11 +99,31 @@ export class SelectorEngine {
     const part: SelectorPart = {};
     let remaining = token;
 
-    // Tag#id or #id
-    const idMatch = remaining.match(/^([^#:\[]*)?#([^\s.:\[]+)/);
+    // Extract :has(...) first (balanced parens) before attribute regex runs
+    const hasMatch = remaining.match(/:has\(/);
+    if (hasMatch) {
+      const start = hasMatch.index!;
+      let depth = 0;
+      let end = -1;
+      for (let i = start + 5; i < remaining.length; i++) {
+        if (remaining[i] === '(') depth++;
+        else if (remaining[i] === ')') {
+          if (depth === 0) { end = i; break; }
+          depth--;
+        }
+      }
+      if (end !== -1) {
+        const sub = remaining.slice(start + 5, end);
+        part.has = sub;
+        remaining = remaining.slice(0, start) + remaining.slice(end + 1);
+      }
+    }
+
+    // Tag#id or #id (supports CSS escapes like #vkey\:submit)
+    const idMatch = remaining.match(/^([^#:\[]*)?#((?:\\.|[^\s.:\[])+)/);
     if (idMatch) {
       if (idMatch[1]) part.tag = idMatch[1];
-      part.id = idMatch[2];
+      part.id = idMatch[2].replace(/\\(.)/g, '$1');
       remaining = remaining.slice(idMatch[0].length);
     } else {
       const tagMatch = remaining.match(/^([a-zA-Z][\w]*)/);
@@ -140,7 +158,12 @@ export class SelectorEngine {
     if (part.nthChild !== undefined) {
       const parent = el.parent;
       if (!parent) return part.nthChild === 1;
-      const idx = parent.children.indexOf(el);
+      // When a tag is specified, count only siblings with the same tag
+      // (matches CSS :nth-of-type behavior that test authors expect)
+      const siblings = part.tag
+        ? parent.children.filter((c) => c.tag === part.tag)
+        : parent.children;
+      const idx = siblings.indexOf(el);
       if (idx + 1 !== part.nthChild) return false;
     }
 
@@ -153,6 +176,13 @@ export class SelectorEngine {
           if (attrVal !== value) return false;
         }
       }
+    }
+
+    if (part.has) {
+      const subSegments = this.parse(part.has);
+      const descendants = this.flatten(el).slice(1); // exclude el itself
+      const anyMatch = descendants.some((d) => this.matchesChain(d, subSegments));
+      if (!anyMatch) return false;
     }
 
     return true;

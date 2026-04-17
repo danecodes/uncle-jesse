@@ -6,7 +6,7 @@ For migration from Appium/WebdriverIO, see [Migration Guide](./migration.md). Fo
 
 ### TVDevice
 
-The interface that all platform adapters implement. RokuAdapter is the Roku implementation.
+Every platform adapter implements this interface. Right now that's just RokuAdapter.
 
 ```typescript
 interface TVDevice {
@@ -46,6 +46,13 @@ interface TVDevice {
   waitForFocus(selector: string, options?: WaitOptions): Promise<UIElement>;
   waitForCondition<T>(predicate: () => Promise<T | null | false>, options?: WaitOptions): Promise<T>;
 
+  // Input
+  sendInput(params: Record<string, string | number>): Promise<void>;
+  touch(x: number, y: number, op?: 'down' | 'up' | 'press' | 'move'): Promise<void>;
+
+  // Stability
+  waitForStable(options?: WaitForStableOptions): Promise<void>;
+
   // Media
   screenshot(): Promise<Buffer>;
 }
@@ -65,7 +72,7 @@ type RemoteKey =
 
 ### LiveElement
 
-A persistent reference to a UI element. Re-queries the device on each method call.
+Persistent reference to a UI element. Re-queries the device on every method call.
 
 ```typescript
 class LiveElement {
@@ -82,7 +89,7 @@ class LiveElement {
 
   // State
   getAttribute(name: string): Promise<string | undefined>;
-  getText(): Promise<string>;
+  getText(): Promise<string>;   // reads text attr, or walks descendant Label/Button elements
   isExisting(): Promise<boolean>;
   isDisplayed(): Promise<boolean>;
   isFocused(): Promise<boolean>;
@@ -107,13 +114,17 @@ class LiveElement {
   toHaveAttribute(name: string, expected: string | RegExp, options?: WaitOptions): Promise<void>;
   toNotHaveAttribute(name: string, expected: string | RegExp, options?: WaitOptions): Promise<void>;
   toExist(options?: WaitOptions): Promise<void>;
+  toNotExist(options?: WaitOptions): Promise<void>;
+  toNotBeFocused(options?: WaitOptions): Promise<void>;
+  toNotHaveText(expected: string | RegExp, options?: WaitOptions): Promise<void>;
+  toHaveTextContaining(text: string, options?: WaitOptions): Promise<void>;
   toBeInFocusChain(options?: WaitOptions): Promise<void>;
 }
 ```
 
 ### ElementCollection
 
-Returned by `$$()`. Lazy - elements are queried on demand.
+Returned by `$$()`. Elements are queried lazily when you access them.
 
 ```typescript
 class ElementCollection {
@@ -121,7 +132,7 @@ class ElementCollection {
   get length(): Promise<number>;
 
   // Assertions
-  toHaveLength(expected: number, options?: WaitOptions): Promise<void>;
+  toHaveLength(expected: number | { gte?: number; lte?: number; eq?: number }, options?: WaitOptions): Promise<void>;
   toHaveText(expected: string[], options?: WaitOptions): Promise<void>;
   toHaveTextInOrder(expected: (string | RegExp)[], options?: WaitOptions): Promise<void>;
 
@@ -185,7 +196,7 @@ class BaseComponent {
 
 ### UIElement
 
-A static snapshot of a SceneGraph node. Returned by `TVDevice.$()` and used internally by LiveElement.
+Static snapshot of a SceneGraph node. `TVDevice.$()` returns these, and LiveElement uses them internally.
 
 ```typescript
 class UIElement {
@@ -208,6 +219,28 @@ class UIElement {
   toString(depth?: number): string;
 }
 ```
+
+### Selector Syntax
+
+CSS-like selectors for querying the SceneGraph tree. Used by `$()`, `$$()`, `waitForElement()`, `waitForFocus()`, and `focusPath`.
+
+| Pattern | Example | Description |
+|---------|---------|-------------|
+| Tag | `RowList` | Elements with that tag name |
+| ID | `#screenTitle` | Element with `name="screenTitle"` |
+| Tag + ID | `Label#screenTitle` | Tag and name combined |
+| Descendant | `HomeScreen RowList` | RowList anywhere inside HomeScreen |
+| Child | `LayoutGroup > Label` | Direct child only |
+| Adjacent sibling | `Module + Module` | Module preceded by another Module |
+| Attribute value | `[text="Home"]` | Element with exact attribute value |
+| Attribute existence | `[focusable]` | Element with attribute present |
+| Tag + attribute | `Label[text="Home"]` | Combined tag and attribute |
+| `:nth-child(n)` | `NavTab:nth-child(2)` | 1-based child index |
+| `:has()` | `Item:has([text="Fantasy"])` | Element containing a matching descendant |
+
+`:has()` supports nesting: `A:has(B:has(C))` matches an A containing a B that contains a C.
+
+When connected to a real device, RokuAdapter swaps in roku-ecp's selector engine, which also supports `*`, `[attr*=]`, `[attr^=]`, `[attr$=]`, and comma-separated groups.
 
 ### Config
 
@@ -233,7 +266,7 @@ export default defineConfig({
 
 ### RegistryState
 
-Builds and applies registry state via launch params or direct ODC writes.
+Registry state builder. Apply via launch params or write directly through ODC.
 
 ```typescript
 class RegistryState {
@@ -256,7 +289,7 @@ class RegistryState {
 
 ### DevicePool
 
-Manages a pool of devices for parallel test execution.
+Device pool for running tests across multiple Rokus in parallel.
 
 ```typescript
 class DevicePool {
@@ -337,10 +370,6 @@ Some RemoteKey values map differently on Roku than you might expect:
 - `pause` maps to the same ECP key as `play` (Roku has a single Play/Pause toggle)
 - `channelUp` and `channelDown` map to `InputTuner` (Roku has no channel keys)
 
-```typescript
-}
-```
-
 ### RokuDiscovery
 
 ```typescript
@@ -355,7 +384,7 @@ class RokuDiscovery {
 
 ### Vitest Plugin
 
-Full lifecycle management for TV E2E tests. Handles device setup, log capture, screenshot on failure, artifact naming, and cleanup.
+Vitest plugin that handles device setup, log capture, screenshots on failure, and cleanup so you don't have to wire all that up yourself.
 
 ```typescript
 // vitest.config.ts
@@ -437,7 +466,7 @@ const html = generateReplayHtml(timeline);
 
 ### CtrfReporter
 
-Generates [CTRF](https://ctrf.io) (Common Test Reporting Format) JSON reports for integration with Databricks, CI dashboards, and cross-team test analytics.
+[CTRF](https://ctrf.io) report generator. Writes JSON you can feed into Databricks, CI dashboards, or wherever you aggregate test results.
 
 ```typescript
 import { CtrfReporter } from 'uncle-jesse';
@@ -459,7 +488,7 @@ reporter.save();               // returns the file path
 const json = reporter.getOutput();
 ```
 
-The report includes device name per test, suite hierarchy, focusPath step failures as CTRF steps, and environment metadata. The `errored` status maps to CTRF's `other`.
+Includes device name per test, suite hierarchy, and focusPath step failures. The `errored` status maps to CTRF's `other`.
 
 ## uncle-jesse CLI
 

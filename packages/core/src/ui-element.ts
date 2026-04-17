@@ -28,7 +28,7 @@ export class UIElement {
   }
 
   get id(): string | undefined {
-    return this.attributes['name'] ?? this.attributes['id'];
+    return this.attributes['name'] ?? this.attributes['id'] ?? this.attributes['uiElementId'];
   }
 
   get text(): string | undefined {

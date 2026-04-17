@@ -40,6 +40,8 @@ export class RokuAdapter implements TVDevice {
   private logStream: LogStream | null = null;
   private _logSession: LogSession = new LogSession();
   private _odc: OdcLike | null = null;
+  private _treeCache: { tree: UiNode; ts: number } | null = null;
+  private _treeCacheTtl = 50; // ms - coalesce near-simultaneous queries
 
   constructor(options: {
     name: string;
@@ -235,7 +237,13 @@ export class RokuAdapter implements TVDevice {
   };
 
   private async getRawUITree(): Promise<UiNode> {
-    return this.getTreeSource();
+    const now = Date.now();
+    if (this._treeCache && now - this._treeCache.ts < this._treeCacheTtl) {
+      return this._treeCache.tree;
+    }
+    const tree = await this.getTreeSource();
+    this._treeCache = { tree, ts: now };
+    return tree;
   }
 
   private uiNodeToElement(node: UiNode, parent: UIElement | null = null): UIElement {
@@ -460,8 +468,8 @@ export class RokuAdapter implements TVDevice {
     return {
       state: state.state,
       isError: state.error,
-      position: state.position ? parseTimeMs(state.position) : undefined,
-      duration: state.duration ? parseTimeMs(state.duration) : undefined,
+      position: state.position ?? undefined,
+      duration: state.duration ?? undefined,
       isLive: state.isLive,
       format: state.format ? {
         audio: state.format.audio,

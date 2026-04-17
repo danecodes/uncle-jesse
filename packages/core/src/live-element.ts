@@ -75,7 +75,26 @@ export class LiveElement {
 
   async getText(): Promise<string> {
     const el = await this.resolve();
-    return el?.getAttribute('text') ?? '';
+    if (!el) return '';
+
+    // Direct text attribute takes precedence
+    const direct = el.getAttribute('text');
+    if (direct) return direct;
+
+    // Collect text from Label/Button descendants (matches Appium behavior)
+    const chunks: string[] = [];
+    const walk = (node: { tag: string; getAttribute(n: string): string | undefined; children: readonly any[] }): void => {
+      if (node.getAttribute('visible') === 'false') return;
+      if (node.getAttribute('opacity') === '0') return;
+      const tag = node.tag.toLowerCase();
+      if (tag.endsWith('label') || tag.endsWith('button')) {
+        const t = node.getAttribute('text');
+        if (t) chunks.push(t);
+      }
+      for (const c of node.children) walk(c);
+    };
+    walk(el);
+    return chunks.join('\n');
   }
 
   async isExisting(): Promise<boolean> {
@@ -133,10 +152,8 @@ export class LiveElement {
         continue;
       }
 
-      // 3. Check if target is focused or if target/active have a
-      //    parent/child relationship (one contains the other)
+      // 3. Check if target itself is focused
       if (target.focused) return;
-      if (isAncestorOrDescendant(target, active)) return;
 
       // 4. Get absolute rects
       const targetRect = getBounds(target);
@@ -178,13 +195,13 @@ export class LiveElement {
       await this.device.press(direction);
 
       // 7. Poll up to 2s for focus to actually change
-      const prevId = active.id ?? active.getAttribute('title') ?? active.tag;
+      const prevId = elementFingerprint(active);
       const pollStart = Date.now();
       let moved = false;
       while (Date.now() - pollStart < 2000) {
         await sleep(100);
         const newActive = await this.device.getFocusedElement();
-        const newId = newActive?.id ?? newActive?.getAttribute('title') ?? newActive?.tag;
+        const newId = elementFingerprint(newActive);
         if (newId !== prevId) {
           moved = true;
           break;
@@ -817,4 +834,19 @@ function matchesIdentity(
     if (cachedVal !== undefined && cachedVal !== currentVal) return false;
   }
   return true;
+}
+
+/** Build a string fingerprint that uniquely identifies an element, even anonymous grid items. */
+function elementFingerprint(
+  el: { tag: string; id?: string; getAttribute(n: string): string | undefined } | null | undefined,
+): string | undefined {
+  if (!el) return undefined;
+  const name = el.getAttribute('name');
+  if (name) return name;
+  const id = el.id ?? el.getAttribute('id');
+  if (id) return id;
+  const title = el.getAttribute('title');
+  if (title) return title;
+  // Fallback: compound key using index + bounds to distinguish anonymous siblings
+  return `${el.tag}#${el.getAttribute('index') ?? ''}@${el.getAttribute('bounds') ?? ''}`;
 }

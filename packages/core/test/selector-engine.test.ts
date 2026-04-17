@@ -130,6 +130,25 @@ describe('SelectorEngine', () => {
       expect(result).not.toBeNull();
       expect(result!.id).toBe('heroItem1');
     });
+
+    it('filters by tag when tag is specified', () => {
+      // Parent has: Spacer, ProfileItem, ProfileItem
+      // ProfileItem:nth-child(1) should match the first ProfileItem, not fail
+      // because the first overall child is a Spacer
+      const tree = el('Root', {}, [
+        el('Parent', {}, [
+          el('Spacer', {}),
+          el('ProfileItem', { name: 'p1' }),
+          el('ProfileItem', { name: 'p2' }),
+        ]),
+      ]);
+      const result = engine.query(tree, 'ProfileItem:nth-child(1)');
+      expect(result).not.toBeNull();
+      expect(result!.id).toBe('p1');
+      const second = engine.query(tree, 'ProfileItem:nth-child(2)');
+      expect(second).not.toBeNull();
+      expect(second!.id).toBe('p2');
+    });
   });
 
   describe('[attr] selectors', () => {
@@ -145,6 +164,56 @@ describe('SelectorEngine', () => {
       const result = engine.query(tree, '[text="Movies"]');
       expect(result).not.toBeNull();
       expect(result!.tag).toBe('Label');
+    });
+  });
+
+  describe(':has()', () => {
+    it('matches element containing a descendant', () => {
+      // Foo:has(Bar) - matches Foo that contains a Bar descendant
+      const tree = el('Root', {}, [
+        el('Foo', {}, [el('Bar', {})]),
+        el('Foo', {}, [el('Baz', {})]),
+      ]);
+      const results = engine.queryAll(tree, 'Foo:has(Bar)');
+      expect(results).toHaveLength(1);
+      expect(results[0].children[0].tag).toBe('Bar');
+    });
+
+    it('matches with attribute selector inside :has()', () => {
+      // Foo:has([attr="x"]) - matches Foo with any descendant having attr="x"
+      const tree = el('Root', {}, [
+        el('Foo', {}, [el('Child', { attr: 'x' })]),
+        el('Foo', {}, [el('Child', { attr: 'y' })]),
+      ]);
+      const results = engine.queryAll(tree, 'Foo:has([attr="x"])');
+      expect(results).toHaveLength(1);
+    });
+
+    it('scopes :has to each matched element', () => {
+      // A B:has(C) - only B descendants of A that contain C
+      const tree = el('Root', {}, [
+        el('A', {}, [
+          el('B', {}, [el('C', {})]),
+          el('B', {}, [el('D', {})]),
+        ]),
+      ]);
+      const results = engine.queryAll(tree, 'A B:has(C)');
+      expect(results).toHaveLength(1);
+      expect(results[0].children[0].tag).toBe('C');
+    });
+
+    it('supports nested :has()', () => {
+      // A:has(B:has(C)) - A containing a B that itself contains a C
+      const tree = el('Root', {}, [
+        el('A', {}, [
+          el('B', {}, [el('C', {})]),
+        ]),
+        el('A', {}, [
+          el('B', {}, [el('D', {})]),
+        ]),
+      ]);
+      const results = engine.queryAll(tree, 'A:has(B:has(C))');
+      expect(results).toHaveLength(1);
     });
   });
 });
