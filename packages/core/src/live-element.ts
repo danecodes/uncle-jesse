@@ -146,21 +146,31 @@ export class LiveElement {
         continue;
       }
 
-      // 5. Edge-to-edge comparison to determine direction
-      let direction: Direction;
+      // 5. Collect all valid directions with their edge gap distance.
+      //    Pick the direction with the smallest gap.
+      const candidates: Array<{ direction: Direction; gap: number }> = [];
+
       if (targetRect.y + targetRect.height <= activeRect.y) {
-        direction = 'up';
-      } else if (targetRect.y >= activeRect.y + activeRect.height) {
-        direction = 'down';
-      } else if (targetRect.x + targetRect.width <= activeRect.x) {
-        direction = 'left';
-      } else if (targetRect.x >= activeRect.x + activeRect.width) {
-        direction = 'right';
-      } else {
+        candidates.push({ direction: 'up', gap: activeRect.y - (targetRect.y + targetRect.height) });
+      }
+      if (targetRect.y >= activeRect.y + activeRect.height) {
+        candidates.push({ direction: 'down', gap: targetRect.y - (activeRect.y + activeRect.height) });
+      }
+      if (targetRect.x + targetRect.width <= activeRect.x) {
+        candidates.push({ direction: 'left', gap: activeRect.x - (targetRect.x + targetRect.width) });
+      }
+      if (targetRect.x >= activeRect.x + activeRect.width) {
+        candidates.push({ direction: 'right', gap: targetRect.x - (activeRect.x + activeRect.width) });
+      }
+
+      if (candidates.length === 0) {
         throw new Error(
           `Unable to determine direction to focus ${this.fullSelector}`
         );
       }
+
+      candidates.sort((a, b) => a.gap - b.gap);
+      const direction = candidates[0].direction;
 
       // 6. Press that key
       await this.device.press(direction);
