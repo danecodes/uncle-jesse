@@ -45,6 +45,12 @@ export interface TVDevice {
   waitForStable(options?: WaitForStableOptions): Promise<void>;
   pause(ms: number): Promise<void>;
 
+  // ODC observation (optional, used by assertions for faster waiting)
+  observeField?(nodeId: string, field: string, options?: {
+    match?: unknown;
+    timeout?: number;
+  }): Promise<{ value: unknown; matched: boolean }>;
+
   deepLink(channelId: string, contentId: string, mediaType?: string): Promise<void>;
   screenshot(): Promise<Buffer>;
 }

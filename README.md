@@ -347,16 +347,55 @@ test('navigate grid', async ({ tv }) => {
 });
 ```
 
-## File Operations (ODC)
+## ODC Integration
 
-Read and write files on the device. Requires `@danecodes/roku-odc` and an app with the ODC component injected.
+Optional but recommended. Install `@danecodes/roku-odc` and inject the ODC component into your app to unlock node introspection, field observation, and file operations. Without ODC, everything works over ECP -- ODC just makes it faster and deeper.
 
 ```typescript
 import { OdcClient } from '@danecodes/roku-odc';
 
 const odc = new OdcClient('192.168.1.100');
 tv.setOdc(odc);
+```
 
+### Node introspection
+
+Read and write any node field by ID, call interface functions, search the scene graph.
+
+```typescript
+// Read a nested view model field
+const isLoggedIn = await tv.getField('authManager', 'isLoggedIn');
+
+// Write a field
+await tv.setField('settingsPanel', 'selectedIndex', 2);
+
+// Call a function on a node
+await tv.callFunc('contentManager', 'refreshFeed', ['home']);
+
+// Search nodes by subtype or field values
+const buttons = await tv.findNodes({ subtype: 'Button', fields: { visible: true } });
+
+// Get the focused node with all its fields
+const focused = await tv.getOdcFocusedNode();
+```
+
+### Field observation
+
+Wait for a field to change or reach a specific value. This is a long-poll -- one HTTP request instead of repeated polling.
+
+```typescript
+// Wait for a field to match a value
+const result = await tv.observeField('videoPlayer', 'state', {
+  match: 'playing',
+  timeout: 10000,
+});
+```
+
+When ODC is configured, LiveElement assertions (`toBeFocused`, `toHaveText`, `toHaveAttribute`) automatically use `observeField` instead of polling. No test changes needed -- your assertions just get faster.
+
+### File operations
+
+```typescript
 await tv.pushFile('tmp:/test-data.json', Buffer.from('{"key":"value"}'));
 const data = await tv.pullFile('tmp:/test-data.json');
 const files = await tv.listFiles('tmp:/');
@@ -469,7 +508,7 @@ Optional integrations:
 
 | Package | Description |
 |---------|-------------|
-| `@danecodes/roku-odc` | Direct registry read/write and file operations via ODC (port 8061) |
+| `@danecodes/roku-odc` | Node introspection, field observation, file operations, registry access via ODC (port 8061) |
 | `@danecodes/roku-log` | Structured BrightScript log parsing and streaming (included in roku adapter) |
 
 ## Examples

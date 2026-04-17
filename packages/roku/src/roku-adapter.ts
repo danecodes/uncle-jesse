@@ -20,6 +20,22 @@ import {
 } from '@danecodes/uncle-jesse-core';
 import { RokuKeyMap } from './roku-key-map.js';
 
+export interface OdcNodeInfo {
+  id: string;
+  subtype: string;
+  fields: Record<string, unknown>;
+}
+
+export interface OdcObserveOptions {
+  match?: unknown;
+  timeout?: number;
+}
+
+export interface OdcObserveResult {
+  value: unknown;
+  matched: boolean;
+}
+
 interface OdcLike {
   pullFile(source: string): Promise<Buffer>;
   pushFile(destination: string, data: Buffer): Promise<void>;
@@ -27,6 +43,12 @@ interface OdcLike {
   setRegistry(data: Record<string, Record<string, string>>): Promise<void>;
   clearRegistry(sections?: string[]): Promise<void>;
   getRegistry(): Promise<Record<string, Record<string, string>>>;
+  getField?(nodeId: string, field: string): Promise<unknown>;
+  setField?(nodeId: string, field: string, value: unknown): Promise<void>;
+  callFunc?(nodeId: string, func: string, params?: unknown[]): Promise<unknown>;
+  findNodes?(filters: Record<string, unknown>): Promise<OdcNodeInfo[]>;
+  getFocusedNode?(): Promise<OdcNodeInfo | null>;
+  observeField?(nodeId: string, field: string, options?: OdcObserveOptions): Promise<OdcObserveResult>;
 }
 
 export class RokuAdapter implements TVDevice {
@@ -483,6 +505,43 @@ export class RokuAdapter implements TVDevice {
 
   async listFiles(path?: string): Promise<string[]> {
     return this.requireOdc().listFiles(path);
+  }
+
+  // ODC node primitives (requires roku-odc >= 0.3.0)
+
+  private requireOdcMethod<K extends keyof OdcLike>(method: K): NonNullable<OdcLike[K]> {
+    const odc = this.requireOdc();
+    const fn = odc[method];
+    if (!fn) {
+      throw new Error(
+        `${String(method)}() requires @danecodes/roku-odc >= 0.3.0`
+      );
+    }
+    return fn.bind(odc) as NonNullable<OdcLike[K]>;
+  }
+
+  async getField(nodeId: string, field: string): Promise<unknown> {
+    return this.requireOdcMethod('getField')(nodeId, field);
+  }
+
+  async setField(nodeId: string, field: string, value: unknown): Promise<void> {
+    return this.requireOdcMethod('setField')(nodeId, field, value);
+  }
+
+  async callFunc(nodeId: string, func: string, params?: unknown[]): Promise<unknown> {
+    return this.requireOdcMethod('callFunc')(nodeId, func, params);
+  }
+
+  async findNodes(filters: Record<string, unknown>): Promise<OdcNodeInfo[]> {
+    return this.requireOdcMethod('findNodes')(filters);
+  }
+
+  async getOdcFocusedNode(): Promise<OdcNodeInfo | null> {
+    return this.requireOdcMethod('getFocusedNode')();
+  }
+
+  async observeField(nodeId: string, field: string, options?: OdcObserveOptions): Promise<OdcObserveResult> {
+    return this.requireOdcMethod('observeField')(nodeId, field, options);
   }
 
   async getMediaPlayerState(): Promise<MediaPlayerInfo> {

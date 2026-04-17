@@ -138,7 +138,7 @@ export class LiveElement {
     maxAttempts?: number;
     timeout?: number;
   }): Promise<void> {
-    const timeout = options?.timeout ?? 15000;
+    const timeout = options?.timeout ?? 30000;
     const start = Date.now();
     const visited = new Map<string, Set<Direction>>();
     const trail: string[] = [];
@@ -228,12 +228,16 @@ export class LiveElement {
       await this.device.press(direction);
       trail.push(direction);
 
-      // 8. Poll up to 2s for focus to actually change
+      // 8. Poll for focus change. First poll at 150ms (keyboards re-render
+      //    focus in 100-150ms), then back off. Cap at 800ms total since
+      //    getFocusedElement() itself costs 200-400ms per call.
       const prevId = fp;
       const pollStart = Date.now();
       let moved = false;
-      while (Date.now() - pollStart < 2000) {
-        await sleep(100);
+      let pollDelay = 150;
+      while (Date.now() - pollStart < 800) {
+        await sleep(pollDelay);
+        pollDelay = Math.min(pollDelay * 2, 400);
         const newActive = await this.device.getFocusedElement();
         const newId = elementFingerprint(newActive);
         if (newId !== prevId) {
@@ -296,7 +300,30 @@ export class LiveElement {
     throw new TimeoutError(this.fullSelector, Date.now() - start);
   }
 
+  /** Try ODC observation for a field match. Returns true if handled, false to fall back to polling. */
+  private async tryObserve(
+    field: string,
+    match: unknown,
+    timeout: number,
+  ): Promise<boolean> {
+    if (!this.device.observeField) return false;
+    const el = await this.resolve();
+    const nodeId = el?.id;
+    if (!nodeId) return false;
+    try {
+      const result = await this.device.observeField(nodeId, field, { match, timeout });
+      return result.matched;
+    } catch {
+      // ODC unavailable or node not found -- fall back to polling
+      return false;
+    }
+  }
+
   // Assertions that poll with timeout.
+  // When ODC is available and the element has an ID, assertions use
+  // observeField for event-driven waiting instead of polling. Falls
+  // back to ECP polling when ODC is not configured.
+
   // Checks if the element has focused="true" in its attributes,
   // meaning it's anywhere in the Roku focus chain (not just the leaf).
   async toBeFocused(options?: WaitOptions & { inverted?: boolean }): Promise<void> {
@@ -307,6 +334,10 @@ export class LiveElement {
     const interval = options?.interval ?? 200;
     const start = Date.now();
 
+    // Try ODC observation first
+    if (await this.tryObserve('focused', 'true', timeout)) return;
+
+    // Fall back to polling
     while (Date.now() - start < timeout) {
       const el = await this.resolve();
       if (el?.focused) return;
@@ -351,6 +382,12 @@ export class LiveElement {
     const interval = options?.interval ?? 200;
     const start = Date.now();
 
+    // Try ODC observation for exact string matches
+    if (typeof expected === 'string') {
+      if (await this.tryObserve('text', expected, timeout)) return;
+    }
+
+    // Fall back to polling (always used for RegExp)
     while (Date.now() - start < timeout) {
       const text = await this.getText();
       if (typeof expected === 'string' && text === expected) return;
@@ -377,6 +414,12 @@ export class LiveElement {
     const interval = options?.interval ?? 200;
     const start = Date.now();
 
+    // Try ODC observation for exact string matches
+    if (typeof expected === 'string') {
+      if (await this.tryObserve(name, expected, timeout)) return;
+    }
+
+    // Fall back to polling
     while (Date.now() - start < timeout) {
       const value = await this.getAttribute(name);
       if (value !== undefined) {

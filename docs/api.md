@@ -360,6 +360,14 @@ class RokuAdapter implements TVDevice {
   pushFile(destination: string, data: Buffer): Promise<void>;
   listFiles(path?: string): Promise<string[]>;
 
+  // ODC node primitives (requires roku-odc >= 0.3.0)
+  getField(nodeId: string, field: string): Promise<unknown>;
+  setField(nodeId: string, field: string, value: unknown): Promise<void>;
+  callFunc(nodeId: string, func: string, params?: unknown[]): Promise<unknown>;
+  findNodes(filters: Record<string, unknown>): Promise<OdcNodeInfo[]>;
+  getOdcFocusedNode(): Promise<OdcNodeInfo | null>;
+  observeField(nodeId: string, field: string, options?: OdcObserveOptions): Promise<OdcObserveResult>;
+
   // Note: home() waits for the current app to exit before returning.
   // launchApp() and deepLink() wait for the target app to become active.
   // launchApp() dismisses the screensaver if the device was idle.
