@@ -133,16 +133,19 @@ export class LiveElement {
         continue;
       }
 
-      // 3. If target contains active or active contains target, done
+      // 3. Check if target is focused or if target/active have a
+      //    parent/child relationship (one contains the other)
       if (target.focused) return;
+      if (isAncestorOrDescendant(target, active)) return;
 
       // 4. Get absolute rects
       const targetRect = getBounds(target);
       const activeRect = getBounds(active);
 
       if (!targetRect || !activeRect) {
-        await sleep(200);
-        continue;
+        throw new Error(
+          `Cannot compute bounds for focus navigation toward ${this.fullSelector}`
+        );
       }
 
       // 5. Collect all valid directions with their edge gap distance.
@@ -775,6 +778,23 @@ function getBounds(el: {
   }
 
   return { x, y, width: rect.width, height: rect.height };
+}
+
+function isAncestorOrDescendant(
+  a: { parent?: { id?: string; tag: string } | null; children: Array<{ id?: string; tag: string; children: unknown[] }> ; id?: string; tag: string },
+  b: { parent?: { id?: string; tag: string } | null; id?: string; tag: string },
+): boolean {
+  // Check if b is a descendant of a
+  function contains(parent: unknown, child: { parent?: unknown | null }): boolean {
+    let current = child.parent;
+    while (current) {
+      if (current === parent) return true;
+      current = (current as { parent?: unknown }).parent;
+    }
+    return false;
+  }
+
+  return contains(a, b) || contains(b, a as { parent?: unknown | null });
 }
 
 function captureIdentity(el: { tag: string; getAttribute(n: string): string | undefined }): Record<string, string | undefined> {
