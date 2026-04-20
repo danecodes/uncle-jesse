@@ -335,7 +335,7 @@ export class RokuAdapter implements TVDevice {
     return this.uiNodeToElement(leaf);
   }
 
-  private static readonly MODAL_TAGS = ['dialog', 'overlay', 'modal', 'scrim'];
+  private static readonly MODAL_TAGS = ['dialog', 'overlay', 'modal', 'scrim', 'keyboard'];
 
   private isModalBranch(node: UiNode): boolean {
     const tag = node.tag.toLowerCase();

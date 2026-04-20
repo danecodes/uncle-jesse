@@ -349,7 +349,7 @@ test('navigate grid', async ({ tv }) => {
 
 ## ODC Integration
 
-Optional but recommended. Install `@danecodes/roku-odc` and inject the ODC component into your app to unlock node introspection, field observation, and file operations. Without ODC, everything works over ECP -- ODC just makes it faster and deeper.
+Optional. Install `@danecodes/roku-odc` and inject the ODC component into your app to get direct access to node fields, field observation, and the device filesystem. Everything works without it (ECP only), but ODC cuts wait times on assertions and lets you inspect state that ECP doesn't expose.
 
 ```typescript
 import { OdcClient } from '@danecodes/roku-odc';
@@ -360,7 +360,7 @@ tv.setOdc(odc);
 
 ### Node introspection
 
-Read and write any node field by ID, call interface functions, search the scene graph.
+Read/write node fields by ID, call interface functions, search the scene graph.
 
 ```typescript
 // Read a nested view model field
@@ -381,7 +381,7 @@ const focused = await tv.getOdcFocusedNode();
 
 ### Field observation
 
-Wait for a field to change or reach a specific value. This is a long-poll -- one HTTP request instead of repeated polling.
+Wait for a field to hit a specific value. Uses a long-poll under the hood, so it's one HTTP request instead of polling in a loop.
 
 ```typescript
 // Wait for a field to match a value
@@ -391,7 +391,7 @@ const result = await tv.observeField('videoPlayer', 'state', {
 });
 ```
 
-When ODC is configured, LiveElement assertions (`toBeFocused`, `toHaveText`, `toHaveAttribute`) automatically use `observeField` instead of polling. No test changes needed -- your assertions just get faster.
+If ODC is configured, LiveElement assertions (`toBeFocused`, `toHaveText`, `toHaveAttribute`) will use `observeField` instead of polling. You don't have to change your tests. The polling fallback is still there for ECP-only setups.
 
 ### File operations
 

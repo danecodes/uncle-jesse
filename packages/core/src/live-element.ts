@@ -140,11 +140,11 @@ export class LiveElement {
   }): Promise<void> {
     const timeout = options?.timeout ?? 30000;
     const noProgressLimit = 12;
-    const unresolvedPressLimit = options?.maxAttempts ?? 8;
+    const unresolvedPollLimit = options?.maxAttempts ?? 25;
     const start = Date.now();
     const visited = new Map<string, Set<Direction>>();
     const trail: string[] = [];
-    let unresolvedPresses = 0;
+    let unresolvedPolls = 0;
     let lastDirection: Direction | null = null;
     let lastGap: number | null = null;
     let noProgressCount = 0;
@@ -153,19 +153,18 @@ export class LiveElement {
       // 1. Resolve the target element from a fresh tree
       const target = await this.resolve();
       if (!target) {
-        unresolvedPresses++;
-        if (unresolvedPresses > unresolvedPressLimit) {
+        unresolvedPolls++;
+        if (unresolvedPolls > unresolvedPollLimit) {
           throw new Error(
-            `Could not focus ${this.fullSelector}: target never resolved after ${unresolvedPresses} blind presses. The selector may be incorrect or the page/dialog may not have loaded.`
+            `Could not focus ${this.fullSelector}: target never resolved after ${unresolvedPolls} attempts. The selector may be incorrect or the page/dialog may not have loaded.`
           );
         }
-        // Element not in tree. Press down to scroll/trigger lazy loading.
-        await this.device.press('down');
-        trail.push('down');
+        // Don't press anything -- blind keypresses can dismiss dialogs
+        // or navigate away from pages that are still mounting.
         await sleep(200);
         continue;
       }
-      unresolvedPresses = 0; // reset once target is found
+      unresolvedPolls = 0;
 
       // 2. Get the currently focused element
       const active = await this.device.getFocusedElement();
@@ -174,8 +173,10 @@ export class LiveElement {
         continue;
       }
 
-      // 3. Check if target itself is focused
-      if (target.focused) return;
+      // 3. Check if the focused element IS the target (identity match,
+      //    not just focused="true" which can be set on ancestor chains)
+      const targetFp = elementFingerprint(target);
+      if (active && targetFp && elementFingerprint(active) === targetFp) return;
 
       // 4. Cycle detection: track visited positions and which directions
       //    we've already tried from each position. When the greedy best
@@ -191,23 +192,32 @@ export class LiveElement {
         continue;
       }
 
-      // 6. Collect all valid directions sorted by smallest edge gap.
+      // 6. Compute direction from center points. This always produces
+      //    at least one candidate when target != active, even when
+      //    bounds partially overlap (e.g. full-width hero card next
+      //    to a narrow sidebar module).
+      const targetCx = targetRect.x + targetRect.width / 2;
+      const targetCy = targetRect.y + targetRect.height / 2;
+      const activeCx = activeRect.x + activeRect.width / 2;
+      const activeCy = activeRect.y + activeRect.height / 2;
+
       const candidates: Array<{ direction: Direction; gap: number }> = [];
 
-      if (targetRect.y + targetRect.height <= activeRect.y) {
-        candidates.push({ direction: 'up', gap: activeRect.y - (targetRect.y + targetRect.height) });
+      if (targetCy < activeCy) {
+        candidates.push({ direction: 'up', gap: activeCy - targetCy });
       }
-      if (targetRect.y >= activeRect.y + activeRect.height) {
-        candidates.push({ direction: 'down', gap: targetRect.y - (activeRect.y + activeRect.height) });
+      if (targetCy > activeCy) {
+        candidates.push({ direction: 'down', gap: targetCy - activeCy });
       }
-      if (targetRect.x + targetRect.width <= activeRect.x) {
-        candidates.push({ direction: 'left', gap: activeRect.x - (targetRect.x + targetRect.width) });
+      if (targetCx < activeCx) {
+        candidates.push({ direction: 'left', gap: activeCx - targetCx });
       }
-      if (targetRect.x >= activeRect.x + activeRect.width) {
-        candidates.push({ direction: 'right', gap: targetRect.x - (activeRect.x + activeRect.width) });
+      if (targetCx > activeCx) {
+        candidates.push({ direction: 'right', gap: targetCx - activeCx });
       }
 
       if (candidates.length === 0) {
+        // Centers are identical -- same element or perfectly stacked.
         await sleep(200);
         continue;
       }
