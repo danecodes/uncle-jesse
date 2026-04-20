@@ -173,10 +173,14 @@ export class LiveElement {
         continue;
       }
 
-      // 3. Check if the focused element IS the target (identity match,
-      //    not just focused="true" which can be set on ancestor chains)
+      // 3. Check if target is focused. Use fingerprint identity when
+      //    both elements have a stable ID (name/id/uiElementId). Fall
+      //    back to target.focused for elements without IDs.
       const targetFp = elementFingerprint(target);
-      if (active && targetFp && elementFingerprint(active) === targetFp) return;
+      const activeFp = elementFingerprint(active);
+      const targetHasStableId = target.id !== undefined;
+      if (targetHasStableId && activeFp === targetFp) return;
+      if (!targetHasStableId && target.focused) return;
 
       // 4. Cycle detection: track visited positions and which directions
       //    we've already tried from each position. When the greedy best
@@ -192,32 +196,37 @@ export class LiveElement {
         continue;
       }
 
-      // 6. Compute direction from center points. This always produces
-      //    at least one candidate when target != active, even when
-      //    bounds partially overlap (e.g. full-width hero card next
-      //    to a narrow sidebar module).
-      const targetCx = targetRect.x + targetRect.width / 2;
-      const targetCy = targetRect.y + targetRect.height / 2;
-      const activeCx = activeRect.x + activeRect.width / 2;
-      const activeCy = activeRect.y + activeRect.height / 2;
-
+      // 6. Collect directions. Try strict non-overlapping edge gates first.
       const candidates: Array<{ direction: Direction; gap: number }> = [];
 
-      if (targetCy < activeCy) {
-        candidates.push({ direction: 'up', gap: activeCy - targetCy });
+      if (targetRect.y + targetRect.height <= activeRect.y) {
+        candidates.push({ direction: 'up', gap: activeRect.y - (targetRect.y + targetRect.height) });
       }
-      if (targetCy > activeCy) {
-        candidates.push({ direction: 'down', gap: targetCy - activeCy });
+      if (targetRect.y >= activeRect.y + activeRect.height) {
+        candidates.push({ direction: 'down', gap: targetRect.y - (activeRect.y + activeRect.height) });
       }
-      if (targetCx < activeCx) {
-        candidates.push({ direction: 'left', gap: activeCx - targetCx });
+      if (targetRect.x + targetRect.width <= activeRect.x) {
+        candidates.push({ direction: 'left', gap: activeRect.x - (targetRect.x + targetRect.width) });
       }
-      if (targetCx > activeCx) {
-        candidates.push({ direction: 'right', gap: targetCx - activeCx });
+      if (targetRect.x >= activeRect.x + activeRect.width) {
+        candidates.push({ direction: 'right', gap: targetRect.x - (activeRect.x + activeRect.width) });
+      }
+
+      // Fallback: when strict produces zero candidates (overlapping bounds),
+      // use center-point comparison on the dominant axis only. Single
+      // candidate avoids zig-zag cycling on 1px deltas.
+      if (candidates.length === 0) {
+        const dx = (targetRect.x + targetRect.width / 2) - (activeRect.x + activeRect.width / 2);
+        const dy = (targetRect.y + targetRect.height / 2) - (activeRect.y + activeRect.height / 2);
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+          candidates.push({ direction: dx > 0 ? 'right' : 'left', gap: Math.abs(dx) });
+        } else if (Math.abs(dy) > 0) {
+          candidates.push({ direction: dy > 0 ? 'down' : 'up', gap: Math.abs(dy) });
+        }
       }
 
       if (candidates.length === 0) {
-        // Centers are identical -- same element or perfectly stacked.
         await sleep(200);
         continue;
       }
