@@ -140,7 +140,7 @@ export class LiveElement {
   }): Promise<void> {
     const timeout = options?.timeout ?? 30000;
     const noProgressLimit = 12;
-    const unresolvedPollLimit = options?.maxAttempts ?? 25;
+    const unresolvedPollLimit = options?.maxAttempts ?? 60;
     const start = Date.now();
     const visited = new Map<string, Set<Direction>>();
     const trail: string[] = [];
