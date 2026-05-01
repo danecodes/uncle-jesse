@@ -585,7 +585,45 @@ export class RokuAdapter implements TVDevice {
 
   // Sideload
 
-  async sideload(pathOrDir: string): Promise<void> {
+  async sideload(pathOrDir: string, options?: { skipInject?: boolean }): Promise<void> {
+    const fs = await import('node:fs/promises');
+    const stat = await fs.stat(pathOrDir);
+
+    if (this._odc && !options?.skipInject) {
+      // Auto-inject ODC component before uploading
+      try {
+        const { inject, injectDir } = await import('@danecodes/roku-odc' as string);
+
+        let zipBuffer: Buffer;
+        if (stat.isDirectory()) {
+          zipBuffer = await injectDir(pathOrDir);
+        } else if (pathOrDir.endsWith('.squashfs')) {
+          throw new Error(
+            'ODC inject does not support squashfs. Provide a .zip or source directory, ' +
+            'or pass { skipInject: true } if ODC is already injected.'
+          );
+        } else {
+          const raw = await fs.readFile(pathOrDir);
+          zipBuffer = await inject(raw);
+        }
+
+        // sideload expects a path, write the injected zip to a temp file
+        const os = await import('node:os');
+        const path = await import('node:path');
+        const tmpFile = path.join(os.tmpdir(), `uncle-jesse-sideload-${Date.now()}.zip`);
+        await fs.writeFile(tmpFile, zipBuffer);
+        try {
+          await this.client.sideload(tmpFile);
+        } finally {
+          await fs.unlink(tmpFile).catch(() => {});
+        }
+        return;
+      } catch (e: any) {
+        if (e.message?.includes('squashfs')) throw e;
+        // inject/injectDir not available (older roku-odc), fall through to plain sideload
+      }
+    }
+
     await this.client.sideload(pathOrDir);
   }
 
