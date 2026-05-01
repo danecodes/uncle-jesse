@@ -65,20 +65,29 @@ export class RokuAdapter implements TVDevice {
   private _treeCache: { tree: UiNode; ts: number } | null = null;
   private _treeCacheTtl = 50; // ms - coalesce near-simultaneous queries
 
+  private _odcOptions: { ip?: string; port?: number } | null = null;
+  private _devPassword: string | undefined;
+
   constructor(options: {
     name: string;
     ip: string;
     devPassword?: string;
     timeout?: number;
     pressDelay?: number;
+    /** Auto-create ODC client on connect. Pass true for defaults or { port } to customize. */
+    odc?: boolean | { ip?: string; port?: number };
   }) {
     this.name = options.name;
     this.ip = options.ip;
     this.pressDelay = options.pressDelay ?? 150;
+    this._devPassword = options.devPassword;
     this.client = new EcpClient(options.ip, {
       devPassword: options.devPassword,
       timeout: options.timeout,
     });
+    if (options.odc) {
+      this._odcOptions = options.odc === true ? {} : options.odc;
+    }
   }
 
   get logs(): LogSession {
@@ -103,8 +112,24 @@ export class RokuAdapter implements TVDevice {
           return findElements(raw, selector).map((n) => this.uiNodeToElement(n));
         },
       });
+      // Auto-connect ODC if configured
+      if (this._odcOptions && !this._odc) {
+        await this.connectOdc(this._odcOptions);
+      }
     } catch (err) {
       throw new DeviceConnectionError(this.ip, err as Error);
+    }
+  }
+
+  /** Connect to ODC. Called automatically if odc option was passed to constructor. */
+  async connectOdc(options?: { ip?: string; port?: number }): Promise<void> {
+    try {
+      const { OdcClient } = await import('@danecodes/roku-odc' as string);
+      const ip = options?.ip ?? this.ip;
+      const odc = new OdcClient(ip, options?.port ? { port: options.port } : undefined);
+      this._odc = odc;
+    } catch {
+      // roku-odc not installed, ODC stays null
     }
   }
 
@@ -537,6 +562,31 @@ export class RokuAdapter implements TVDevice {
 
   async listFiles(path?: string): Promise<string[]> {
     return this.requireOdc().listFiles(path);
+  }
+
+  // Registry operations (forwarded to ODC)
+
+  async setRegistry(data: Record<string, Record<string, string>>): Promise<void> {
+    return this.requireOdc().setRegistry(data);
+  }
+
+  async clearRegistry(sections?: string[]): Promise<void> {
+    return this.requireOdc().clearRegistry(sections);
+  }
+
+  async getRegistry(): Promise<Record<string, Record<string, string>>> {
+    return this.requireOdc().getRegistry();
+  }
+
+  /** Check if ODC is connected and available. */
+  get hasOdc(): boolean {
+    return this._odc !== null;
+  }
+
+  // Sideload
+
+  async sideload(pathOrDir: string): Promise<void> {
+    await this.client.sideload(pathOrDir);
   }
 
   // ODC node primitives (requires roku-odc >= 0.3.0)

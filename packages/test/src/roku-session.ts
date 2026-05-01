@@ -8,10 +8,13 @@ export interface RokuSessionOptions {
   timeout?: number;
   pressDelay?: number;
 
-  /** Registry state helpers to compose before launch. */
+  /** Path to a .zip or .squashfs to sideload before launch. */
+  channelArtifact?: { path: string };
+
+  /** Registry state helpers to compose before launch. Written via ODC. */
   registry?: RegistryState[];
 
-  /** Extra launch params (clearRegistry, feature flags, etc). */
+  /** Extra launch params (feature flags, overrides, etc). */
   launchArgs?: Record<string, string>;
 
   /** Artifact configuration for logs and screenshots. */
@@ -21,7 +24,7 @@ export interface RokuSessionOptions {
     screenshotOnFail?: boolean;
   };
 
-  /** User-supplied app factory. Called with the device after connect. */
+  /** User-supplied app factory. Called with the device after launch. */
   appFactory?: (device: TVDevice) => unknown;
 }
 
@@ -34,9 +37,16 @@ export interface RokuSession {
 }
 
 /**
- * Consolidates Roku test setup into a single call. Connects, composes
- * registry state, launches the channel, starts log capture, and returns
- * a session you can destructure.
+ * Consolidates Roku test setup into a single call.
+ *
+ * The full sequence:
+ * 1. Create RokuAdapter with auto-ODC
+ * 2. Connect to the device
+ * 3. (Optional) Sideload channel artifact
+ * 4. Write registry state via ODC if available, otherwise via launch params
+ * 5. Launch the channel
+ * 6. Start log capture if configured
+ * 7. Return { device, app, dispose }
  *
  * ```typescript
  * const session = await RokuTestSession.create({
@@ -71,7 +81,7 @@ export class RokuTestSession implements RokuSession {
   get app(): unknown { return this._app; }
 
   static async create(options: RokuSessionOptions): Promise<RokuTestSession> {
-    // Dynamic import -- test package doesn't hard-depend on roku package
+    // Dynamic import so test package doesn't hard-depend on roku package
     let RokuAdapter: any;
     try {
       const mod = await import('@danecodes/uncle-jesse-roku' as string);
@@ -88,25 +98,44 @@ export class RokuTestSession implements RokuSession {
       devPassword: options.devPassword ?? 'rokudev',
       timeout: options.timeout,
       pressDelay: options.pressDelay,
+      odc: true,
     });
 
     await device.connect();
 
-    // Start log capture if requested
-    let stopLogCapture: (() => void) | null = null;
-    if (options.artifacts?.captureLog && typeof device.startLogCapture === 'function') {
-      await device.startLogCapture();
-      stopLogCapture = () => device.stopLogCapture();
+    // Sideload if artifact provided
+    if (options.channelArtifact) {
+      await device.sideload(options.channelArtifact.path);
     }
 
-    // Compose registry state from helpers
-    const launchParams: Record<string, string> = { ...options.launchArgs };
+    // Compose registry state
+    let registryData: Record<string, Record<string, string>> | null = null;
     if (options.registry && options.registry.length > 0) {
       const combined = new RegistryState();
       for (const r of options.registry) {
         combined.merge(r.toJSON());
       }
-      Object.assign(launchParams, combined.toLaunchParams());
+      registryData = combined.toJSON();
+    }
+
+    // Write registry via ODC if available, otherwise fall back to launch params
+    const launchParams: Record<string, string> = { ...options.launchArgs };
+    if (registryData) {
+      if (device.hasOdc) {
+        await device.clearRegistry();
+        await device.setRegistry(registryData);
+      } else {
+        // Fall back to launch params
+        const rs = RegistryState.from(registryData);
+        Object.assign(launchParams, rs.toLaunchParams());
+      }
+    }
+
+    // Start log capture before launch so we catch launch logs
+    let stopLogCapture: (() => void) | null = null;
+    if (options.artifacts?.captureLog && typeof device.startLogCapture === 'function') {
+      await device.startLogCapture();
+      stopLogCapture = () => device.stopLogCapture();
     }
 
     // Launch
