@@ -1,6 +1,6 @@
 {
   "name": "@danecodes/uncle-jesse-core",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "type": "module",
   "exports": {
     ".": {
@@ -34,7 +34,7 @@
     "cosmiconfig": "^9.0.1"
   },
   "peerDependencies": {
-    "@danecodes/roku-odc": ">=0.4.1"
+    "@danecodes/roku-odc": ">=0.4.2"
   },
   "peerDependenciesMeta": {
     "@danecodes/roku-odc": {

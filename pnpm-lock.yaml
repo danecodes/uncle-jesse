@@ -88,8 +88,8 @@ importers:
   packages/core:
     dependencies:
       '@danecodes/roku-odc':
-        specifier: '>=0.4.1'
-        version: 0.4.1
+        specifier: '>=0.4.2'
+        version: 0.4.2
       cosmiconfig:
         specifier: ^9.0.1
         version: 9.0.1(typescript@6.0.2)
@@ -97,11 +97,11 @@ importers:
   packages/roku:
     dependencies:
       '@danecodes/roku-ecp':
-        specifier: ^0.7.2
-        version: 0.7.2
+        specifier: ^0.7.4
+        version: 0.7.4
       '@danecodes/roku-log':
-        specifier: ^0.1.0
-        version: 0.1.0
+        specifier: ^0.2.0
+        version: 0.2.0
       '@danecodes/uncle-jesse-core':
         specifier: workspace:^
         version: link:../core
@@ -113,7 +113,7 @@ importers:
         version: link:../core
       '@danecodes/uncle-jesse-roku':
         specifier: '>=1.2.0'
-        version: 1.4.0(@danecodes/roku-odc@0.4.1)(typescript@6.0.2)
+        version: 1.4.0(@danecodes/roku-odc@0.4.2)(typescript@6.0.2)
       vitest:
         specifier: '>=2.0.0'
         version: 4.1.4(@types/node@25.6.0)(vite@8.0.8(@types/node@25.6.0)(esbuild@0.27.7))
@@ -121,8 +121,8 @@ importers:
   packages/uncle-jesse:
     dependencies:
       '@danecodes/roku-ecp':
-        specifier: 0.6.4
-        version: 0.6.4
+        specifier: ^0.7.4
+        version: 0.7.4
       '@danecodes/uncle-jesse-core':
         specifier: workspace:^
         version: link:../core
@@ -215,20 +215,24 @@ packages:
     resolution: {integrity: sha512-CyE/mGIuicnorb2BggrhvOiwCNGq7BHn4AY9ENd9e65b3B4fUo/Oxx/iZzJz6Ips3GcuwDgIfWIcCRGicSfTCQ==}
     engines: {node: '>=22'}
 
-  '@danecodes/roku-ecp@0.7.2':
-    resolution: {integrity: sha512-fjPH/ZyVp4IoJEGnX0SgCbkSwJXos0hv4mKAbXDhqCR3VASDltR+TkNLmb0ICTBrkA3yvWylZpLG444UCYoCuw==}
+  '@danecodes/roku-ecp@0.7.4':
+    resolution: {integrity: sha512-UzYmyKRUQigsdXlasJ2XmxRMzmJyK6Djqnm+yzo+6nPGy0Fls/EG+VVZsVJ7ODexJ4Z00kpZ/zWor9RTyamV4Q==}
     engines: {node: '>=22'}
 
   '@danecodes/roku-log@0.1.0':
     resolution: {integrity: sha512-E/cYUKdEirFVf+VleJTM9xJFgWc0apj1NsAsKFw0cBWZfVCtQ6sC+SKDnIrNrtd+qBZ/dFB1XosWBUob+JtLfQ==}
     engines: {node: '>=22'}
 
+  '@danecodes/roku-log@0.2.0':
+    resolution: {integrity: sha512-FH6fZ1tJKCUZq5tCIzjsRK9SKrQTT/l2r5KJw+3NBti+d6bs2i/quS4yD5Mii575KrY0sjIJvQydkWCoob/YTw==}
+    engines: {node: '>=22'}
+
   '@danecodes/roku-odc@0.2.3':
     resolution: {integrity: sha512-igg+2UPkzjKen5oQ6AIuMj65X+5R/i1T5nBnad8j5qeWEwxUp8IoBDPtKsyA9RiBSR8a9+Xih0Z/W8/3i+79Mw==}
     engines: {node: '>=22'}
 
-  '@danecodes/roku-odc@0.4.1':
-    resolution: {integrity: sha512-Jrvui5ePdKx2D/J85NEC9vUwQNHpZdgVFyA920fotGBQAtZJ2etyYTEBadruOM6QkFoyerH7zFnzoFPcAzWDYA==}
+  '@danecodes/roku-odc@0.4.2':
+    resolution: {integrity: sha512-5IzqsD8CggTWZry/7/tC78InsrdErKRiWHmkcza09pxN+FC8GVze13JPDNgSUvBEV8ayWcBsZ90bdRckLwGWZA==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -1842,7 +1846,7 @@ snapshots:
       fast-xml-parser: 5.5.11
       yazl: 3.3.1
 
-  '@danecodes/roku-ecp@0.7.2':
+  '@danecodes/roku-ecp@0.7.4':
     dependencies:
       '@danecodes/roku-log': 0.1.0
       fast-xml-parser: 5.5.11
@@ -1850,29 +1854,31 @@ snapshots:
 
   '@danecodes/roku-log@0.1.0': {}
 
+  '@danecodes/roku-log@0.2.0': {}
+
   '@danecodes/roku-odc@0.2.3':
     dependencies:
       yauzl: 3.3.0
       yazl: 3.3.1
 
-  '@danecodes/roku-odc@0.4.1':
+  '@danecodes/roku-odc@0.4.2':
     dependencies:
       yauzl: 3.3.0
       yazl: 3.3.1
 
-  '@danecodes/uncle-jesse-core@1.0.0(@danecodes/roku-odc@0.4.1)(typescript@6.0.2)':
+  '@danecodes/uncle-jesse-core@1.0.0(@danecodes/roku-odc@0.4.2)(typescript@6.0.2)':
     dependencies:
       cosmiconfig: 9.0.1(typescript@6.0.2)
     optionalDependencies:
-      '@danecodes/roku-odc': 0.4.1
+      '@danecodes/roku-odc': 0.4.2
     transitivePeerDependencies:
       - typescript
 
-  '@danecodes/uncle-jesse-roku@1.4.0(@danecodes/roku-odc@0.4.1)(typescript@6.0.2)':
+  '@danecodes/uncle-jesse-roku@1.4.0(@danecodes/roku-odc@0.4.2)(typescript@6.0.2)':
     dependencies:
-      '@danecodes/roku-ecp': 0.7.2
+      '@danecodes/roku-ecp': 0.7.4
       '@danecodes/roku-log': 0.1.0
-      '@danecodes/uncle-jesse-core': 1.0.0(@danecodes/roku-odc@0.4.1)(typescript@6.0.2)
+      '@danecodes/uncle-jesse-core': 1.0.0(@danecodes/roku-odc@0.4.2)(typescript@6.0.2)
     transitivePeerDependencies:
       - '@danecodes/roku-odc'
       - typescript
