@@ -64,22 +64,6 @@ export class RegistryState {
     return RegistryState.from(data);
   }
 
-  static skipOnboarding(): RegistryState {
-    return new RegistryState().set('APP_CONFIG', 'isFirstLaunch', 'false');
-  }
-
-  static authenticated(token?: string): RegistryState {
-    const state = RegistryState.skipOnboarding();
-    if (token) {
-      state.set('APP_CONFIG', 'authToken', token);
-    }
-    return state;
-  }
-
-  static locale(code: string): RegistryState {
-    return new RegistryState().set('APP_CONFIG', 'locale', code);
-  }
-
   static from(data: RegistryData): RegistryState {
     const state = new RegistryState();
     state.merge(data);

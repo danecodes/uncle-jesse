@@ -286,8 +286,11 @@ class RegistryState {
   applyViaOdc(odc: OdcClient, options?: { clearFirst?: boolean }): Promise<void>;
   static readFromDevice(odc: OdcClient): Promise<RegistryState>;
 
-  static skipOnboarding(): RegistryState;
-  static authenticated(): RegistryState;
+  // Introspection
+  has(section: string, key: string): boolean;
+  get(section: string, key: string): string | undefined;
+  sections(): string[];
+
   static from(data: RegistryData): RegistryState;
 }
 ```

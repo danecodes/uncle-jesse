@@ -59,7 +59,7 @@ export interface RokuSession<TApp = unknown> {
  * const session = await RokuTestSession.create({
  *   deviceIp: process.env.ROKU_IP!,
  *   channelId: 'dev',
- *   registry: [RegistryState.skipOnboarding()],
+ *   registry: [new RegistryState().set('MY_APP', 'isFirstLaunch', 'false')],
  *   artifacts: { captureLog: true, screenshotOnFail: true },
  * });
  * const { device } = session;

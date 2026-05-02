@@ -465,20 +465,21 @@ The call blocks until the app is in the foreground.
 
 ## Registry State
 
-Pre-load registry values before launching. Skip onboarding, set language prefs, configure feature flags -- anything your app reads from the registry on launch. Works with apps that handle the `odc_registry` launch param.
+Pre-load registry values before launching. Works with apps that handle the `odc_registry` launch param. Define your own app-specific factories in your test data layer.
 
 ```typescript
 import { RegistryState } from '@danecodes/uncle-jesse-core';
 
-const registry = RegistryState.skipOnboarding();
-const params = registry.toLaunchParams();
-await tv.launchApp('dev', params);
+// Build registry state with your app's section names and keys
+const registry = new RegistryState()
+  .set('MY_APP_PREFS', 'isFirstLaunch', 'false')
+  .set('MY_APP_SETTINGS', 'subtitleLanguage', 'en');
+await tv.launchApp('dev', registry.toLaunchParams());
 
-// Or build custom state
-const custom = new RegistryState()
-  .set('APP_CONFIG', 'isFirstLaunch', 'false')
-  .set('SETTINGS', 'subtitleLanguage', 'en');
-await tv.launchApp('dev', custom.toLaunchParams());
+// Or from a data object
+const state = RegistryState.from({
+  MY_APP_PREFS: { isFirstLaunch: 'false', theme: 'dark' },
+});
 ```
 
 ## Architecture

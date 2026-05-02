@@ -82,8 +82,8 @@ it('launch params and ODC write produce equivalent registry state', async () => 
   }
 });
 
-it('skipOnboarding writes the correct registry value', async () => {
-  const state = RegistryState.skipOnboarding();
+it('custom registry factory writes the correct value', async () => {
+  const state = new RegistryState().set('APP_CONFIG', 'isFirstLaunch', 'false');
   await state.applyViaOdc(odc);
 
   const readBack = await RegistryState.readFromDevice(odc);

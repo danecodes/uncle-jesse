@@ -125,7 +125,7 @@ import { RokuBuilder } from '../../src/RokuBuilder.js';
 
 beforeEach(async (ctx) => {
   const roku = await new RokuBuilder(ctx)
-    .withRegistry(RegistryState.skipOnboarding())
+    .withRegistry(skipOnboarding())
     .connect();
   app = roku.app;
   device = roku.device;
@@ -144,7 +144,8 @@ beforeEach(async () => {
   await device.connect();
   home = new HomePage(device, null);
   await device.home();
-  const registry = RegistryState.skipOnboarding();
+  // Define app-specific registry factories in your test data layer
+  const registry = new RegistryState().set('MY_APP', 'isFirstLaunch', 'false');
   await device.launchApp('dev', registry.toLaunchParams());
   await home.waitForLoaded();
 });

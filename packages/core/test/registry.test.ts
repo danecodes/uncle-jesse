@@ -64,13 +64,6 @@ describe('RegistryState', () => {
     expect(params.odc_clear_registry).toBeUndefined();
   });
 
-  it('skipOnboarding sets isFirstLaunch to false', () => {
-    const state = RegistryState.skipOnboarding();
-    expect(state.toJSON()).toEqual({
-      APP_CONFIG: { isFirstLaunch: 'false' },
-    });
-  });
-
   it('creates from existing data', () => {
     const state = RegistryState.from({
       SECTION_A: { key1: 'val1' },
@@ -164,7 +157,8 @@ describe('RegistryState', () => {
     it('toLaunchParams and applyViaOdc produce equivalent registry data', async () => {
       const odc = mockOdc();
 
-      const state = RegistryState.skipOnboarding()
+      const state = new RegistryState()
+        .set('APP_CONFIG', 'isFirstLaunch', 'false')
         .set('SETTINGS', 'language', 'ja');
 
       // What launch params would send
