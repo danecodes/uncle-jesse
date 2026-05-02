@@ -59,6 +59,7 @@ export const RemoteKey = {
 export interface WaitOptions {
   timeout?: number;
   interval?: number;
+  timeoutMsg?: string;
 }
 
 export interface AppInfo {

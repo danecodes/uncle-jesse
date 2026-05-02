@@ -440,7 +440,7 @@ export class LiveElement {
 
     const expected = (await this.resolve())?.id ?? this.fullSelector;
     throw new Error(
-      `Expected ${expected} to be focused, but it is not in the focus chain`
+      options?.timeoutMsg ?? `Expected ${expected} to be focused, but it is not in the focus chain`
     );
   }
 
@@ -467,7 +467,7 @@ export class LiveElement {
     }
 
     throw new Error(
-      `Expected ${this.fullSelector} to not be displayed, but it is`
+      options?.timeoutMsg ?? `Expected ${this.fullSelector} to not be displayed, but it is`
     );
   }
 
@@ -491,7 +491,7 @@ export class LiveElement {
 
     const actual = await this.getText();
     throw new Error(
-      `Expected ${this.fullSelector} to have text "${expected}", but got "${actual}"`
+      options?.timeoutMsg ?? `Expected ${this.fullSelector} to have text "${expected}", but got "${actual}"`
     );
   }
 
@@ -525,7 +525,7 @@ export class LiveElement {
 
     const actual = await this.getAttribute(name);
     throw new Error(
-      `Expected ${this.fullSelector} to have attribute "${name}" matching "${expected}", but got "${actual ?? '<missing>'}"`
+      options?.timeoutMsg ?? `Expected ${this.fullSelector} to have attribute "${name}" matching "${expected}", but got "${actual ?? '<missing>'}"`
     );
   }
 
@@ -614,7 +614,7 @@ export class LiveElement {
 
     const actual = await this.getText();
     throw new Error(
-      `Expected ${this.fullSelector} text to contain "${text}", but got "${actual}"`
+      options?.timeoutMsg ?? `Expected ${this.fullSelector} text to contain "${text}", but got "${actual}"`
     );
   }
 
@@ -708,7 +708,7 @@ export class ElementCollection {
   }
 
   async toHaveLength(
-    expected: number | { gte?: number; lte?: number; eq?: number },
+    expected: number | { gte?: number; lte?: number; gt?: number; lt?: number; eq?: number },
     options?: WaitOptions,
   ): Promise<void> {
     const timeout = options?.timeout ?? 10000;
@@ -720,6 +720,8 @@ export class ElementCollection {
       if (expected.eq !== undefined && count !== expected.eq) return false;
       if (expected.gte !== undefined && count < expected.gte) return false;
       if (expected.lte !== undefined && count > expected.lte) return false;
+      if (expected.gt !== undefined && count <= expected.gt) return false;
+      if (expected.lt !== undefined && count >= expected.lt) return false;
       return true;
     };
 
@@ -731,7 +733,7 @@ export class ElementCollection {
 
     const actual = await this.length;
     throw new Error(
-      `Expected ${this.fullSelector} to have length ${JSON.stringify(expected)}, but got ${actual}`
+      options?.timeoutMsg ?? `Expected ${this.fullSelector} to have length ${JSON.stringify(expected)}, but got ${actual}`
     );
   }
 
@@ -838,18 +840,31 @@ export class TypedElementCollection<T extends BaseComponent> {
     return this.device.$$(this.fullSelector).then((els) => els.length);
   }
 
-  async toHaveLength(expected: number, options?: WaitOptions): Promise<void> {
+  async toHaveLength(
+    expected: number | { gte?: number; lte?: number; gt?: number; lt?: number; eq?: number },
+    options?: WaitOptions,
+  ): Promise<void> {
     const timeout = options?.timeout ?? 10000;
     const interval = options?.interval ?? 250;
     const start = Date.now();
+
+    const matches = (count: number): boolean => {
+      if (typeof expected === 'number') return count === expected;
+      if (expected.eq !== undefined && count !== expected.eq) return false;
+      if (expected.gte !== undefined && count < expected.gte) return false;
+      if (expected.lte !== undefined && count > expected.lte) return false;
+      if (expected.gt !== undefined && count <= expected.gt) return false;
+      if (expected.lt !== undefined && count >= expected.lt) return false;
+      return true;
+    };
+
     while (Date.now() - start < timeout) {
-      const len = await this.length;
-      if (len === expected) return;
+      if (matches(await this.length)) return;
       await sleep(interval);
     }
     const actual = await this.length;
     throw new Error(
-      `Expected ${this.fullSelector} to have length ${expected}, got ${actual}`
+      options?.timeoutMsg ?? `Expected ${this.fullSelector} to have length ${JSON.stringify(expected)}, got ${actual}`
     );
   }
 
