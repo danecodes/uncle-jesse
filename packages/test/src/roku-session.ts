@@ -25,12 +25,12 @@ export interface RokuSessionOptions {
   };
 
   /** User-supplied app factory. Called with the device after launch. */
-  appFactory?: (device: TVDevice) => unknown;
+  appFactory?: (device: TVDevice) => any;
 }
 
-export interface RokuSession {
+export interface RokuSession<TApp = unknown> {
   device: TVDevice;
-  app: unknown;
+  app: TApp;
   screenshot(): Promise<Buffer | null>;
   saveScreenshot(name: string): Promise<string | null>;
   dispose(): Promise<void>;
@@ -59,15 +59,15 @@ export interface RokuSession {
  * await session.dispose();
  * ```
  */
-export class RokuTestSession implements RokuSession {
+export class RokuTestSession<TApp = unknown> implements RokuSession<TApp> {
   private _device: TVDevice;
-  private _app: unknown;
+  private _app: TApp;
   private _artifacts: RokuSessionOptions['artifacts'];
   private _stopLogCapture: (() => void) | null;
 
   private constructor(
     device: TVDevice,
-    app: unknown,
+    app: TApp,
     artifacts: RokuSessionOptions['artifacts'],
     stopLogCapture: (() => void) | null,
   ) {
@@ -78,9 +78,11 @@ export class RokuTestSession implements RokuSession {
   }
 
   get device(): TVDevice { return this._device; }
-  get app(): unknown { return this._app; }
+  get app(): TApp { return this._app; }
 
-  static async create(options: RokuSessionOptions): Promise<RokuTestSession> {
+  static async create<TApp = unknown>(options: RokuSessionOptions & {
+    appFactory?: (device: TVDevice) => TApp;
+  }): Promise<RokuTestSession<TApp>> {
     // Dynamic import so test package doesn't hard-depend on roku package
     let RokuAdapter: any;
     try {
@@ -142,9 +144,9 @@ export class RokuTestSession implements RokuSession {
     await device.launchApp(options.channelId, launchParams);
 
     // Build app if factory provided
-    const app = options.appFactory ? options.appFactory(device) : null;
+    const app = (options.appFactory ? options.appFactory(device) : null) as TApp;
 
-    return new RokuTestSession(device, app, options.artifacts, stopLogCapture);
+    return new RokuTestSession<TApp>(device, app, options.artifacts, stopLogCapture);
   }
 
   async screenshot(): Promise<Buffer | null> {

@@ -666,11 +666,15 @@ export class RokuAdapter implements TVDevice {
 
   async getMediaPlayerState(): Promise<MediaPlayerInfo> {
     const state = await this.client.queryMediaPlayer();
+    const position = state.position ?? undefined;
+    const duration = state.duration ?? undefined;
     return {
       state: state.state,
       isError: state.error,
-      position: state.position ?? undefined,
-      duration: state.duration ?? undefined,
+      position,
+      duration,
+      currentTime: position,
+      remainingTime: position !== undefined && duration !== undefined ? duration - position : undefined,
       isLive: state.isLive,
       format: state.format ? {
         audio: state.format.audio,
@@ -783,16 +787,68 @@ export class RokuAdapter implements TVDevice {
     }
   }
 
+  async toBeInPlaybackState(state: PlayerState, options?: { timeout?: number }): Promise<void> {
+    const timeout = options?.timeout ?? 15000;
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      const info = await this.getMediaPlayerState();
+      if (info.state === state) return;
+      await new Promise((r) => setTimeout(r, 500));
+    }
+    const current = await this.getMediaPlayerState();
+    throw new Error(
+      `Expected playback state "${state}" but got "${current.state}" after ${timeout}ms`
+    );
+  }
+
+  // Voice
+
+  async voiceSeek(positionMs: number): Promise<void> {
+    const hours = Math.floor(positionMs / 3600000);
+    const minutes = Math.floor((positionMs % 3600000) / 60000);
+    const seconds = Math.floor((positionMs % 60000) / 1000);
+    const parts: string[] = [];
+    if (hours > 0) parts.push(`${hours} hours`);
+    if (minutes > 0) parts.push(`${minutes} minutes`);
+    if (seconds > 0) parts.push(`${seconds} seconds`);
+    await this.voiceCommand(`seek to ${parts.join(' ')}`);
+  }
+
+  async voiceCommand(utterance: string): Promise<void> {
+    await this.client.input({ voice: utterance });
+  }
+
+  // Device info
+
+  async getDeviceInfo(): Promise<Record<string, string | boolean>> {
+    return this.client.queryDeviceInfo();
+  }
+
   async screenshot(): Promise<Buffer> {
     return this.client.takeScreenshot();
   }
 }
+
+export type PlayerState =
+  | 'play'
+  | 'pause'
+  | 'buffering'
+  | 'stopped'
+  | 'error'
+  | 'finished'
+  | 'idle'
+  | 'open'
+  | 'startup';
 
 export interface MediaPlayerInfo {
   state: string;
   isError: boolean;
   position?: number;
   duration?: number;
+  /** Alias for position. */
+  currentTime?: number;
+  /** duration - position, or undefined if either is missing. */
+  remainingTime?: number;
   isLive?: boolean;
   format?: {
     audio: string;

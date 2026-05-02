@@ -216,4 +216,65 @@ describe('SelectorEngine', () => {
       expect(results).toHaveLength(1);
     });
   });
+
+  describe('selector list (comma)', () => {
+    it('matches union of selectors', () => {
+      const tree = el('Root', {}, [
+        el('Foo', { name: 'a' }),
+        el('Bar', { name: 'b' }),
+        el('Baz', { name: 'c' }),
+      ]);
+      const results = engine.queryAll(tree, 'Foo, Bar');
+      expect(results).toHaveLength(2);
+    });
+  });
+
+  describe('substring attribute selectors', () => {
+    it('[attr*=] matches substring', () => {
+      const tree = el('Root', {}, [
+        el('Btn', { text: 'Start Free Trial' }),
+        el('Btn', { text: 'Subscribe Now' }),
+      ]);
+      const results = engine.queryAll(tree, '[text*="Free"]');
+      expect(results).toHaveLength(1);
+    });
+
+    it('[attr^=] matches prefix', () => {
+      const tree = el('Root', {}, [
+        el('Img', { uri: 'http://cdn.example.com/hero.jpg' }),
+        el('Img', { uri: 'file:///local.png' }),
+      ]);
+      const results = engine.queryAll(tree, '[uri^="http"]');
+      expect(results).toHaveLength(1);
+    });
+
+    it('[attr$=] matches suffix', () => {
+      const tree = el('Root', {}, [
+        el('Img', { uri: 'hero.jpg' }),
+        el('Img', { uri: 'icon.png' }),
+      ]);
+      const results = engine.queryAll(tree, '[uri$=".png"]');
+      expect(results).toHaveLength(1);
+    });
+  });
+
+  describe('universal selector *', () => {
+    it('matches any element', () => {
+      const tree = el('Root', {}, [
+        el('A', {}),
+        el('B', {}),
+      ]);
+      const results = engine.queryAll(tree, '*');
+      expect(results).toHaveLength(3); // Root + A + B
+    });
+
+    it('works with child combinator > *', () => {
+      const tree = el('Root', {}, [
+        el('A', {}, [el('Nested', {})]),
+        el('B', {}),
+      ]);
+      const results = engine.queryAll(tree, 'Root > *');
+      expect(results).toHaveLength(2); // A + B, not Nested
+    });
+  });
 });

@@ -2,10 +2,15 @@ import { UIElement } from './ui-element.js';
 
 type Combinator = 'descendant' | 'child' | 'adjacent';
 
+interface AttrMatch {
+  value: string | null;
+  op?: 'exact' | 'contains' | 'starts' | 'ends';
+}
+
 interface SelectorPart {
   tag?: string;
   id?: string;
-  attrs?: Record<string, string | null>;
+  attrs?: Record<string, AttrMatch>;
   nthChild?: number;
   has?: string;
 }
@@ -27,11 +32,51 @@ export class SelectorEngine {
         `XPath selectors are not supported: "${selector}". Use CSS (e.g. replace "//Label[@text=\\"X\\"]" with ":has(Label[text=\\"X\\"])")`
       );
     }
+
+    // Comma-separated selector list: union of matches
+    if (selector.includes(',')) {
+      const groups = this.splitCommaGroups(selector);
+      if (groups.length > 1) {
+        const seen = new Set<UIElement>();
+        const results: UIElement[] = [];
+        for (const group of groups) {
+          for (const el of this.queryAll(root, group.trim())) {
+            if (!seen.has(el)) {
+              seen.add(el);
+              results.push(el);
+            }
+          }
+        }
+        return results;
+      }
+    }
+
     const segments = this.parse(selector);
     if (segments.length === 0) return [];
 
     const all = this.flatten(root);
     return all.filter((el) => this.matchesChain(el, segments));
+  }
+
+  private splitCommaGroups(selector: string): string[] {
+    const groups: string[] = [];
+    let current = '';
+    let depth = 0;
+    let inBracket = false;
+    for (const ch of selector) {
+      if (ch === '[') inBracket = true;
+      if (ch === ']') inBracket = false;
+      if (ch === '(') depth++;
+      if (ch === ')') depth--;
+      if (ch === ',' && depth === 0 && !inBracket) {
+        groups.push(current);
+        current = '';
+        continue;
+      }
+      current += ch;
+    }
+    if (current) groups.push(current);
+    return groups;
   }
 
   private parse(selector: string): SelectorSegment[] {
@@ -130,6 +175,9 @@ export class SelectorEngine {
       if (idMatch[1]) part.tag = idMatch[1];
       part.id = idMatch[2].replace(/\\(.)/g, '$1');
       remaining = remaining.slice(idMatch[0].length);
+    } else if (remaining.startsWith('*')) {
+      // Universal selector - matches any tag
+      remaining = remaining.slice(1);
     } else {
       const tagMatch = remaining.match(/^([a-zA-Z][\w]*)/);
       if (tagMatch) {
@@ -145,12 +193,25 @@ export class SelectorEngine {
       remaining = remaining.replace(nthMatch[0], '');
     }
 
-    // [attr=value] pairs
-    const attrRegex = /\[([^\]=]+)(?:="([^"]*)")?\]/g;
+    // [attr=value], [attr*=value], [attr^=value], [attr$=value] pairs
+    const attrRegex = /\[([^\]=*^$]+)([*^$])?=(?:"([^"]*)"|'([^']*)')?\]|\[([^\]]+)\]/g;
     let attrMatch;
     while ((attrMatch = attrRegex.exec(remaining)) !== null) {
       if (!part.attrs) part.attrs = {};
-      part.attrs[attrMatch[1]] = attrMatch[2] ?? null;
+      if (attrMatch[5]) {
+        // Bare [attr] existence check
+        part.attrs[attrMatch[5]] = { value: null };
+      } else {
+        const key = attrMatch[1];
+        const opChar = attrMatch[2];
+        const value = attrMatch[3] ?? attrMatch[4] ?? null;
+        const op = opChar === '*' ? 'contains' as const
+          : opChar === '^' ? 'starts' as const
+          : opChar === '$' ? 'ends' as const
+          : value !== null ? 'exact' as const
+          : undefined;
+        part.attrs[key] = { value, op };
+      }
     }
 
     return part;
@@ -178,12 +239,20 @@ export class SelectorEngine {
     }
 
     if (part.attrs) {
-      for (const [key, value] of Object.entries(part.attrs)) {
+      for (const [key, match] of Object.entries(part.attrs)) {
         const attrVal = el.getAttribute(key);
-        if (value === null) {
+        if (match.value === null) {
           if (attrVal === undefined) return false;
+        } else if (attrVal === undefined) {
+          return false;
+        } else if (match.op === 'contains') {
+          if (!attrVal.includes(match.value)) return false;
+        } else if (match.op === 'starts') {
+          if (!attrVal.startsWith(match.value)) return false;
+        } else if (match.op === 'ends') {
+          if (!attrVal.endsWith(match.value)) return false;
         } else {
-          if (attrVal !== value) return false;
+          if (attrVal !== match.value) return false;
         }
       }
     }

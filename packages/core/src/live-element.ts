@@ -41,6 +41,17 @@ export class LiveElement {
     return new ElementCollection(this.device, childSelector, this.fullSelector);
   }
 
+  /** All direct children, optionally filtered by selector. */
+  children(selector?: string): ElementCollection {
+    const childSel = selector ? `> ${selector}` : '> *';
+    return new ElementCollection(this.device, childSel, this.fullSelector);
+  }
+
+  /** Direct child at a 0-based index. */
+  childAt(index: number): LiveElement {
+    return this.children().get(index);
+  }
+
   async resolve() {
     const el = await this.device.$(this.fullSelector);
     if (!el) return null;
