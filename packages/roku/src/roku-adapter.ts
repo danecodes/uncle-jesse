@@ -1,8 +1,11 @@
 import {
   EcpClient, type KeyName, parseUiXml, findElement, findElements, type UiNode,
-  getRect,
+  getRect, formatTree,
   waitForApp, waitForElement as ecpWaitForElement, waitForFocus as ecpWaitForFocus,
-  waitFor, waitForStable as ecpWaitForStable,
+  waitFor, waitForStable as ecpWaitForStable, waitForElementGone, waitForText,
+  type DeviceInfo,
+  type PlayerState as EcpPlayerState,
+  type ChanperfSample,
 } from '@danecodes/roku-ecp';
 import { LogStream, LogSession, type LogEntry } from '@danecodes/roku-log';
 import {
@@ -836,8 +839,35 @@ export class RokuAdapter implements TVDevice {
 
   // Device info
 
-  async getDeviceInfo(): Promise<Record<string, string | boolean>> {
+  async getDeviceInfo(): Promise<DeviceInfo> {
     return this.client.queryDeviceInfo();
+  }
+
+  /** Check if the device is reachable. Returns false on timeout. */
+  async ping(timeoutMs?: number): Promise<boolean> {
+    return this.client.ping(timeoutMs);
+  }
+
+  /** Wait until an element disappears from the tree. */
+  async waitForElementGone(selector: string, options?: WaitOptions): Promise<void> {
+    await waitForElementGone(this.getTreeSource, selector, options);
+  }
+
+  /** Wait until an element's text contains the given string. */
+  async waitForText(selector: string, text: string, options?: WaitOptions): Promise<UIElement> {
+    const node = await waitForText(this.getTreeSource, selector, text, options);
+    return this.uiNodeToElement(node);
+  }
+
+  /** Get CPU and memory performance metrics. */
+  async getChanperf(): Promise<ChanperfSample> {
+    return this.client.queryChanperf();
+  }
+
+  /** Get the UI tree as a formatted string for diagnostics. */
+  async getPageSourceFormatted(): Promise<string> {
+    const raw = await this.getRawUITree();
+    return formatTree(raw);
   }
 
   async screenshot(): Promise<Buffer> {
@@ -869,16 +899,7 @@ export class RokuAdapter implements TVDevice {
   }
 }
 
-export type PlayerState =
-  | 'play'
-  | 'pause'
-  | 'buffering'
-  | 'stopped'
-  | 'error'
-  | 'finished'
-  | 'idle'
-  | 'open'
-  | 'startup';
+export type PlayerState = EcpPlayerState;
 
 /** Const companion for PlayerState. Use `PlayerState.Play` instead of `'play'`. */
 export const PlayerState = {
@@ -891,6 +912,7 @@ export const PlayerState = {
   Idle: 'idle',
   Open: 'open',
   Startup: 'startup',
+  None: 'none',
 } as const satisfies Record<string, PlayerState>;
 
 export interface MediaPlayerInfo {
