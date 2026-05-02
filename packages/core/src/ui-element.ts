@@ -25,6 +25,10 @@ export class UIElement {
     this.attributes = attributes;
     this.children = children;
     this.parent = parent;
+    // Auto-set parent on children
+    for (const child of children) {
+      if (!child.parent) (child as { parent: UIElement | null }).parent = this;
+    }
   }
 
   get id(): string | undefined {

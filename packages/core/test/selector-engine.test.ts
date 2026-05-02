@@ -121,6 +121,32 @@ describe('SelectorEngine', () => {
       expect(result).not.toBeNull();
       expect(result!.id).toBe('heroItem1');
     });
+
+    it('A + B with auto-parent', () => {
+      const tree = el('Root', {}, [
+        el('HomePage', {}, [
+          el('CollectionModule', { name: 'before' }),
+          el('UpsellPromoModule', {}),
+          el('CollectionModule', { name: 'after' }),
+        ]),
+      ]);
+      expect(engine.queryAll(tree, 'CollectionModule + UpsellPromoModule')).toHaveLength(1);
+      expect(engine.queryAll(tree, 'UpsellPromoModule + CollectionModule')).toHaveLength(1);
+      expect(engine.queryAll(tree, 'UpsellPromoModule + *')).toHaveLength(1);
+    });
+
+    it(':has(+ B) matches only the preceding sibling', () => {
+      const tree = el('Root', {}, [
+        el('HomePage', {}, [
+          el('CollectionModule', { name: 'before' }),
+          el('UpsellPromoModule', {}),
+          el('CollectionModule', { name: 'after' }),
+        ]),
+      ]);
+      const results = engine.queryAll(tree, '*:has(+ UpsellPromoModule)');
+      expect(results).toHaveLength(1);
+      expect(results[0].id).toBe('before');
+    });
   });
 
   describe(':nth-child()', () => {
@@ -275,6 +301,45 @@ describe('SelectorEngine', () => {
       ]);
       const results = engine.queryAll(tree, 'Root > *');
       expect(results).toHaveLength(2); // A + B, not Nested
+    });
+  });
+
+  describe('descendant + attribute combos', () => {
+    it('Parent Tag[attr*=value]', () => {
+      const tree = el('Root', {}, [
+        el('ShowPage', {}, [
+          el('Poster', { uri: 'https://cdn/heroBanner.png' }),
+        ]),
+      ]);
+      expect(engine.queryAll(tree, 'ShowPage Poster[uri*="hero"]')).toHaveLength(1);
+    });
+
+    it('Parent [attr*=value] (bare attr)', () => {
+      const tree = el('Root', {}, [
+        el('ShowPage', {}, [
+          el('Poster', { uri: 'https://cdn/heroBanner.png' }),
+        ]),
+      ]);
+      expect(engine.queryAll(tree, 'ShowPage [uri*="hero"]')).toHaveLength(1);
+    });
+
+    it('Parent *[attr^=value]', () => {
+      const tree = el('Root', {}, [
+        el('Container', {}, [
+          el('Link', { href: 'https://example.com' }),
+        ]),
+      ]);
+      expect(engine.queryAll(tree, 'Container *[href^="https"]')).toHaveLength(1);
+    });
+
+    it('Parent Tag[attr$=value]', () => {
+      const tree = el('Root', {}, [
+        el('Gallery', {}, [
+          el('Img', { src: 'photo.jpg' }),
+          el('Img', { src: 'icon.svg' }),
+        ]),
+      ]);
+      expect(engine.queryAll(tree, 'Gallery Img[src$=".jpg"]')).toHaveLength(1);
     });
   });
 });

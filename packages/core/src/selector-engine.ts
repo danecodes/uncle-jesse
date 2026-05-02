@@ -284,10 +284,35 @@ export class SelectorEngine {
     }
 
     if (part.has) {
-      const subSegments = this.parse(part.has);
-      const descendants = this.flatten(el).slice(1);
-      const anyMatch = descendants.some((d) => this.matchesChain(d, subSegments));
-      if (!anyMatch) return false;
+      const hasSel = part.has.trim();
+      // :has(+ B) — check if el has an adjacent next sibling matching B
+      if (hasSel.startsWith('+')) {
+        const sibSel = hasSel.slice(1).trim();
+        const sibPart = this.parsePart(sibSel);
+        const parent = el.parent;
+        if (!parent) return false;
+        const idx = parent.children.indexOf(el);
+        if (idx < 0 || idx >= parent.children.length - 1) return false;
+        if (!this.matchesPart(parent.children[idx + 1], sibPart)) return false;
+      } else if (hasSel.startsWith('~')) {
+        // :has(~ B) — check if el has any following sibling matching B
+        const sibSel = hasSel.slice(1).trim();
+        const sibPart = this.parsePart(sibSel);
+        const parent = el.parent;
+        if (!parent) return false;
+        const idx = parent.children.indexOf(el);
+        let found = false;
+        for (let s = idx + 1; s < parent.children.length; s++) {
+          if (this.matchesPart(parent.children[s], sibPart)) { found = true; break; }
+        }
+        if (!found) return false;
+      } else {
+        // Standard :has() — check descendants
+        const subSegments = this.parse(hasSel);
+        const descendants = this.flatten(el).slice(1);
+        const anyMatch = descendants.some((d) => this.matchesChain(d, subSegments));
+        if (!anyMatch) return false;
+      }
     }
 
     if (part.not) {
