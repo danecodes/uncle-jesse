@@ -685,7 +685,7 @@ export class RokuAdapter implements TVDevice {
     const position = state.position ?? undefined;
     const duration = state.duration ?? undefined;
     return {
-      state: state.state,
+      state: state.state as PlayerState,
       isError: state.error,
       position,
       duration,
@@ -880,8 +880,21 @@ export type PlayerState =
   | 'open'
   | 'startup';
 
+/** Const companion for PlayerState. Use `PlayerState.Play` instead of `'play'`. */
+export const PlayerState = {
+  Play: 'play',
+  Pause: 'pause',
+  Buffering: 'buffering',
+  Stopped: 'stopped',
+  Error: 'error',
+  Finished: 'finished',
+  Idle: 'idle',
+  Open: 'open',
+  Startup: 'startup',
+} as const satisfies Record<string, PlayerState>;
+
 export interface MediaPlayerInfo {
-  state: string;
+  state: PlayerState;
   isError: boolean;
   position?: number;
   duration?: number;

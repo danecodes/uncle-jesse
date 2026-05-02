@@ -1,5 +1,6 @@
 export { RokuAdapter } from './roku-adapter.js';
-export type { MediaPlayerInfo, PlayerState, OdcNodeInfo, OdcObserveOptions, OdcObserveResult } from './roku-adapter.js';
+export { PlayerState } from './roku-adapter.js';
+export type { MediaPlayerInfo, PlayerState as PlayerStateType, OdcNodeInfo, OdcObserveOptions, OdcObserveResult } from './roku-adapter.js';
 export { LogSession, LogStream } from '@danecodes/roku-log';
 export type { LogEntry, BrightScriptError, Backtrace, BeaconEntry } from '@danecodes/roku-log';
 export { RokuKeyMap } from './roku-key-map.js';

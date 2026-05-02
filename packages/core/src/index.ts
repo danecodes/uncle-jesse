@@ -1,13 +1,13 @@
 export type { TVDevice, WaitForStableOptions, DeviceEvent, DeviceEventHandler } from './tv-device.js';
 export type {
   Platform,
-  RemoteKey,
-  Direction,
   WaitOptions,
   AppInfo,
   DeviceConfig,
   UncleJesseConfig,
 } from './types.js';
+export { Direction, RemoteKey } from './types.js';
+export type { Direction as DirectionType, RemoteKey as RemoteKeyType } from './types.js';
 export { UIElement, setDefaultQueryEngine } from './ui-element.js';
 export type { ElementQueryEngine } from './ui-element.js';
 export { SelectorEngine } from './selector-engine.js';
