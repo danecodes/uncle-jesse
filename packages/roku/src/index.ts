@@ -1,4 +1,5 @@
 export { RokuAdapter } from './roku-adapter.js';
+export type { RokuAdapter as RokuDevice } from './roku-adapter.js';
 export { PlayerState } from './roku-adapter.js';
 export type { MediaPlayerInfo, PlayerState as PlayerStateType, OdcNodeInfo, OdcObserveOptions, OdcObserveResult } from './roku-adapter.js';
 export type { DeviceInfo, ChanperfSample } from '@danecodes/roku-ecp';

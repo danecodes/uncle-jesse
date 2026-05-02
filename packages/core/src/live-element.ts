@@ -837,6 +837,36 @@ export class TypedElementCollection<T extends BaseComponent> {
   get length(): Promise<number> {
     return this.device.$$(this.fullSelector).then((els) => els.length);
   }
+
+  async toHaveLength(expected: number, options?: WaitOptions): Promise<void> {
+    const timeout = options?.timeout ?? 10000;
+    const interval = options?.interval ?? 250;
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      const len = await this.length;
+      if (len === expected) return;
+      await sleep(interval);
+    }
+    const actual = await this.length;
+    throw new Error(
+      `Expected ${this.fullSelector} to have length ${expected}, got ${actual}`
+    );
+  }
+
+  async toBeEmpty(options?: WaitOptions): Promise<void> {
+    return this.toHaveLength(0, options);
+  }
+
+  async toNotBeEmpty(options?: WaitOptions): Promise<void> {
+    const timeout = options?.timeout ?? 10000;
+    const interval = options?.interval ?? 250;
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      if ((await this.length) > 0) return;
+      await sleep(interval);
+    }
+    throw new Error(`Expected ${this.fullSelector} to not be empty`);
+  }
 }
 
 class IndexedLiveElement extends LiveElement {
@@ -942,6 +972,45 @@ export class BaseComponent {
   ): Promise<T> {
     return this.device.waitForCondition(predicate, options);
   }
+
+  // Action proxies
+  select(options?: { ifNotDisplayedNavigate?: Direction }): Promise<void> { return this.element.select(options); }
+  focus(options?: { maxAttempts?: number; timeout?: number }): Promise<void> { return this.element.focus(options); }
+  scrollIntoView(direction: Direction, options?: { maxAttempts?: number; timeout?: number }): Promise<void> {
+    return this.element.scrollIntoView(direction, options);
+  }
+
+  // Matcher proxies
+  toBeFocused(options?: WaitOptions): Promise<void> { return this.element.toBeFocused(options); }
+  toNotBeFocused(options?: WaitOptions): Promise<void> { return this.element.toNotBeFocused(options); }
+  toBeInFocusChain(options?: WaitOptions): Promise<void> { return this.element.toBeInFocusChain(options); }
+  toBeDisplayed(options?: WaitOptions): Promise<void> { return this.element.toBeDisplayed(options); }
+  toNotBeDisplayed(options?: WaitOptions): Promise<void> { return this.element.toNotBeDisplayed(options); }
+  toExist(options?: WaitOptions): Promise<void> { return this.element.toExist(options); }
+  toNotExist(options?: WaitOptions): Promise<void> { return this.element.toNotExist(options); }
+  toHaveText(expected: string | RegExp, options?: WaitOptions): Promise<void> { return this.element.toHaveText(expected, options); }
+  toNotHaveText(expected: string | RegExp, options?: WaitOptions): Promise<void> { return this.element.toNotHaveText(expected, options); }
+  toHaveTextContaining(text: string, options?: WaitOptions): Promise<void> { return this.element.toHaveTextContaining(text, options); }
+  toHaveAttribute(name: string, expected: string | RegExp, options?: WaitOptions): Promise<void> {
+    return this.element.toHaveAttribute(name, expected, options);
+  }
+  toNotHaveAttribute(name: string, expected: string | RegExp, options?: WaitOptions): Promise<void> {
+    return this.element.toNotHaveAttribute(name, expected, options);
+  }
+  toBeStable(options?: { timeout?: number; trackedAttributes?: string[]; settleCount?: number }): Promise<void> {
+    return this.element.toBeStable(options);
+  }
+  toHaveBounds(expected: { x?: number; y?: number; width?: number; height?: number }, options?: WaitOptions): Promise<void> {
+    return this.element.toHaveBounds(expected, options);
+  }
+
+  // Probe proxies
+  getAttribute(name: string): Promise<string | undefined> { return this.element.getAttribute(name); }
+  getText(): Promise<string> { return this.element.getText(); }
+  getRect(): Promise<Rect | null> { return this.element.getRect(); }
+  isFocused(): Promise<boolean> { return this.element.isFocused(); }
+  isExisting(): Promise<boolean> { return this.element.isExisting(); }
+  isDisplayed(): Promise<boolean> { return this.element.isDisplayed(); }
 }
 
 export class BasePage<TApp = unknown> {
