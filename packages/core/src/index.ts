@@ -1,4 +1,4 @@
-export type { TVDevice, WaitForStableOptions } from './tv-device.js';
+export type { TVDevice, WaitForStableOptions, DeviceEvent, DeviceEventHandler } from './tv-device.js';
 export type {
   Platform,
   RemoteKey,

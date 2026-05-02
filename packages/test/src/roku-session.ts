@@ -26,6 +26,13 @@ export interface RokuSessionOptions {
 
   /** User-supplied app factory. Called with the device after launch. */
   appFactory?: (device: TVDevice) => any;
+
+  /** Lifecycle hooks. */
+  hooks?: {
+    beforeLaunch?: (device: TVDevice) => Promise<void>;
+    afterLaunch?: (device: TVDevice, app: any) => Promise<void>;
+    beforeDispose?: (device: TVDevice) => Promise<void>;
+  };
 }
 
 export interface RokuSession<TApp = unknown> {
@@ -64,17 +71,22 @@ export class RokuTestSession<TApp = unknown> implements RokuSession<TApp> {
   private _app: TApp;
   private _artifacts: RokuSessionOptions['artifacts'];
   private _stopLogCapture: (() => void) | null;
+  private _options: RokuSessionOptions;
+  private _hooks: RokuSessionOptions['hooks'];
 
   private constructor(
     device: TVDevice,
     app: TApp,
     artifacts: RokuSessionOptions['artifacts'],
     stopLogCapture: (() => void) | null,
+    options: RokuSessionOptions,
   ) {
     this._device = device;
     this._app = app;
     this._artifacts = artifacts;
     this._stopLogCapture = stopLogCapture;
+    this._options = options;
+    this._hooks = options.hooks;
   }
 
   get device(): TVDevice { return this._device; }
@@ -140,13 +152,23 @@ export class RokuTestSession<TApp = unknown> implements RokuSession<TApp> {
       stopLogCapture = () => device.stopLogCapture();
     }
 
+    // beforeLaunch hook
+    if (options.hooks?.beforeLaunch) {
+      await options.hooks.beforeLaunch(device);
+    }
+
     // Launch
     await device.launchApp(options.channelId, launchParams);
 
     // Build app if factory provided
     const app = (options.appFactory ? options.appFactory(device) : null) as TApp;
 
-    return new RokuTestSession<TApp>(device, app, options.artifacts, stopLogCapture);
+    // afterLaunch hook
+    if (options.hooks?.afterLaunch) {
+      await options.hooks.afterLaunch(device, app);
+    }
+
+    return new RokuTestSession<TApp>(device, app, options.artifacts, stopLogCapture, options);
   }
 
   async screenshot(): Promise<Buffer | null> {
@@ -169,7 +191,42 @@ export class RokuTestSession<TApp = unknown> implements RokuSession<TApp> {
     return file;
   }
 
+  /** Relaunch the channel without reconnecting or re-sideloading. */
+  async relaunch(launchArgs?: Record<string, string>): Promise<void> {
+    await this._device.closeApp();
+
+    const params: Record<string, string> = { ...this._options.launchArgs, ...launchArgs };
+
+    // Re-apply registry if configured
+    if (this._options.registry && this._options.registry.length > 0) {
+      const combined = new RegistryState();
+      for (const r of this._options.registry) {
+        combined.merge(r.toJSON());
+      }
+      const device = this._device as any;
+      if (device.hasOdc) {
+        await device.clearRegistry();
+        await device.setRegistry(combined.toJSON());
+      } else {
+        Object.assign(params, combined.toLaunchParams());
+      }
+    }
+
+    if (this._hooks?.beforeLaunch) {
+      await this._hooks.beforeLaunch(this._device);
+    }
+
+    await this._device.launchApp(this._options.channelId, params);
+
+    if (this._hooks?.afterLaunch) {
+      await this._hooks.afterLaunch(this._device, this._app);
+    }
+  }
+
   async dispose(): Promise<void> {
+    if (this._hooks?.beforeDispose) {
+      await this._hooks.beforeDispose(this._device);
+    }
     if (this._stopLogCapture) {
       this._stopLogCapture();
     }

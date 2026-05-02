@@ -52,6 +52,37 @@ export class LiveElement {
     return this.children().get(index);
   }
 
+  /** Parent element. Resolves the element and returns its parent. */
+  async parent(): Promise<LiveElement | null> {
+    const el = await this.resolve();
+    if (!el?.parent) return null;
+    const parentId = el.parent.id;
+    if (parentId) {
+      return new LiveElement(this.device, `#${parentId}`);
+    }
+    // No ID on parent, return a LiveElement wrapping the tag
+    return new LiveElement(this.device, el.parent.tag);
+  }
+
+  /** Walk up the tree to find the closest ancestor matching the selector. */
+  async closest(selector: string): Promise<LiveElement | null> {
+    const el = await this.resolve();
+    if (!el) return null;
+    let ancestor = el.parent;
+    const engine = await import('./selector-engine.js').then(m => new m.SelectorEngine());
+    while (ancestor) {
+      const fakeRoot = ancestor;
+      const match = engine.query(fakeRoot, selector);
+      if (match === fakeRoot) {
+        const id = fakeRoot.id;
+        if (id) return new LiveElement(this.device, `#${id}`);
+        return new LiveElement(this.device, fakeRoot.tag);
+      }
+      ancestor = ancestor.parent;
+    }
+    return null;
+  }
+
   async resolve() {
     const el = await this.device.$(this.fullSelector);
     if (!el) return null;
@@ -585,6 +616,68 @@ export class LiveElement {
     throw new Error(
       `Expected ${this.fullSelector} text to contain "${text}", but got "${actual}"`
     );
+  }
+
+  /** Wait until the element's tracked attributes stop changing. */
+  async toBeStable(options?: {
+    timeout?: number;
+    trackedAttributes?: string[];
+    settleCount?: number;
+  }): Promise<void> {
+    const timeout = options?.timeout ?? 5000;
+    const tracked = options?.trackedAttributes ?? ['bounds', 'text', 'focused', 'visible', 'opacity'];
+    const settleTarget = options?.settleCount ?? 2;
+    const start = Date.now();
+    let lastSnapshot = '';
+    let stableCount = 0;
+
+    while (Date.now() - start < timeout) {
+      const el = await this.resolve();
+      const snapshot = tracked
+        .map((a) => `${a}=${el?.getAttribute(a) ?? ''}`)
+        .join('|');
+
+      if (snapshot === lastSnapshot) {
+        stableCount++;
+        if (stableCount >= settleTarget) return;
+      } else {
+        stableCount = 1;
+        lastSnapshot = snapshot;
+      }
+      await sleep(100);
+    }
+  }
+
+  /** Assert that the element has specific bounds. */
+  async toHaveBounds(
+    expected: { x?: number; y?: number; width?: number; height?: number },
+    options?: WaitOptions,
+  ): Promise<void> {
+    const timeout = options?.timeout ?? 10000;
+    const start = Date.now();
+
+    while (Date.now() - start < timeout) {
+      const rect = await this.getRect();
+      if (rect) {
+        let matches = true;
+        if (expected.x !== undefined && rect.x !== expected.x) matches = false;
+        if (expected.y !== undefined && rect.y !== expected.y) matches = false;
+        if (expected.width !== undefined && rect.width !== expected.width) matches = false;
+        if (expected.height !== undefined && rect.height !== expected.height) matches = false;
+        if (matches) return;
+      }
+      await sleep(200);
+    }
+
+    const actual = await this.getRect();
+    throw new Error(
+      `Expected ${this.fullSelector} bounds to match ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`
+    );
+  }
+
+  /** Scroll in a direction until this element is displayed, without selecting it. */
+  async scrollIntoView(direction: Direction, options?: { maxAttempts?: number; timeout?: number }): Promise<void> {
+    await this.scrollUntilDisplayed(direction, options?.maxAttempts, options?.timeout);
   }
 }
 

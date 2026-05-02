@@ -27,6 +27,18 @@ export class RegistryState {
     return { ...this.data };
   }
 
+  has(section: string, key: string): boolean {
+    return this.data[section]?.[key] !== undefined;
+  }
+
+  get(section: string, key: string): string | undefined {
+    return this.data[section]?.[key];
+  }
+
+  sections(): string[] {
+    return Object.keys(this.data);
+  }
+
   toLaunchParams(options?: { clearRegistry?: boolean }): Record<string, string> {
     const params: Record<string, string> = {};
     if (options?.clearRegistry !== false) {

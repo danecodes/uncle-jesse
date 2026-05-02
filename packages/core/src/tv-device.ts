@@ -9,6 +9,21 @@ export interface WaitForStableOptions {
   settleCount?: number;
 }
 
+export type DeviceEvent =
+  | { type: 'press'; key: RemoteKey; times: number }
+  | { type: 'navigate'; direction: Direction; steps: number }
+  | { type: 'select' }
+  | { type: 'back' }
+  | { type: 'home' }
+  | { type: 'launch'; appId: string; params?: Record<string, string> }
+  | { type: 'deepLink'; channelId: string; contentId: string }
+  | { type: 'sideload'; path: string }
+  | { type: 'type'; text: string }
+  | { type: 'wait'; method: string; durationMs: number }
+  | { type: 'screenshot' };
+
+export type DeviceEventHandler = (event: DeviceEvent) => void;
+
 export interface TVDevice {
   readonly platform: Platform;
   readonly name: string;
@@ -19,6 +34,7 @@ export interface TVDevice {
   isConnected(): boolean;
 
   press(key: RemoteKey, options?: { times?: number; delay?: number }): Promise<void>;
+  press(keys: RemoteKey[], options?: { delay?: number }): Promise<void>;
   longPress(key: RemoteKey, duration?: number): Promise<void>;
   type(text: string): Promise<void>;
   sendInput(params: Record<string, string | number>): Promise<void>;
@@ -44,6 +60,10 @@ export interface TVDevice {
   waitUntil(predicate: () => Promise<boolean>, options?: { timeout?: number; interval?: number; timeoutMsg?: string }): Promise<void>;
   waitForStable(options?: WaitForStableOptions): Promise<void>;
   pause(ms: number): Promise<void>;
+
+  // Event hook for breadcrumbs/logging
+  on(handler: DeviceEventHandler): void;
+  off(handler: DeviceEventHandler): void;
 
   // ODC observation (optional, used by assertions for faster waiting)
   observeField?(nodeId: string, field: string, options?: {

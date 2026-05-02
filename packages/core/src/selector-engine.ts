@@ -1,6 +1,6 @@
 import { UIElement } from './ui-element.js';
 
-type Combinator = 'descendant' | 'child' | 'adjacent';
+type Combinator = 'descendant' | 'child' | 'adjacent' | 'general-sibling';
 
 interface AttrMatch {
   value: string | null;
@@ -13,6 +13,9 @@ interface SelectorPart {
   attrs?: Record<string, AttrMatch>;
   nthChild?: number;
   has?: string;
+  not?: string;
+  focused?: boolean;
+  visible?: boolean;
 }
 
 interface SelectorSegment {
@@ -94,6 +97,10 @@ export class SelectorEngine {
         combinator = 'adjacent';
         continue;
       }
+      if (token === '~') {
+        combinator = 'general-sibling';
+        continue;
+      }
 
       segments.push({
         combinator: segments.length === 0 ? 'descendant' : combinator,
@@ -132,7 +139,7 @@ export class SelectorEngine {
         continue;
       }
 
-      if (parenDepth === 0 && (ch === '>' || ch === '+')) {
+      if (parenDepth === 0 && (ch === '>' || ch === '+' || ch === '~')) {
         if (current) { tokens.push(current); current = ''; }
         tokens.push(ch);
         continue;
@@ -149,24 +156,22 @@ export class SelectorEngine {
     const part: SelectorPart = {};
     let remaining = token;
 
-    // Extract :has(...) first (balanced parens) before attribute regex runs
-    const hasMatch = remaining.match(/:has\(/);
-    if (hasMatch) {
-      const start = hasMatch.index!;
-      let depth = 0;
-      let end = -1;
-      for (let i = start + 5; i < remaining.length; i++) {
-        if (remaining[i] === '(') depth++;
-        else if (remaining[i] === ')') {
-          if (depth === 0) { end = i; break; }
-          depth--;
-        }
-      }
-      if (end !== -1) {
-        const sub = remaining.slice(start + 5, end);
-        part.has = sub;
-        remaining = remaining.slice(0, start) + remaining.slice(end + 1);
-      }
+    // Extract :has(...) first (balanced parens)
+    remaining = this.extractPseudoFunc(remaining, ':has(', (sub) => { part.has = sub; });
+
+    // Extract :not(...)
+    remaining = this.extractPseudoFunc(remaining, ':not(', (sub) => { part.not = sub; });
+
+    // :focused pseudo-class
+    if (remaining.includes(':focused')) {
+      part.focused = true;
+      remaining = remaining.replace(':focused', '');
+    }
+
+    // :visible pseudo-class
+    if (remaining.includes(':visible')) {
+      part.visible = true;
+      remaining = remaining.replace(':visible', '');
     }
 
     // Tag#id or #id (supports CSS escapes like #vkey\:submit)
@@ -176,7 +181,7 @@ export class SelectorEngine {
       part.id = idMatch[2].replace(/\\(.)/g, '$1');
       remaining = remaining.slice(idMatch[0].length);
     } else if (remaining.startsWith('*')) {
-      // Universal selector - matches any tag
+      // Universal selector
       remaining = remaining.slice(1);
     } else {
       const tagMatch = remaining.match(/^([a-zA-Z][\w]*)/);
@@ -199,7 +204,6 @@ export class SelectorEngine {
     while ((attrMatch = attrRegex.exec(remaining)) !== null) {
       if (!part.attrs) part.attrs = {};
       if (attrMatch[5]) {
-        // Bare [attr] existence check
         part.attrs[attrMatch[5]] = { value: null };
       } else {
         const key = attrMatch[1];
@@ -217,6 +221,27 @@ export class SelectorEngine {
     return part;
   }
 
+  /** Extract a balanced-paren pseudo-function like :has(...) or :not(...) */
+  private extractPseudoFunc(remaining: string, prefix: string, setter: (sub: string) => void): string {
+    const match = remaining.match(new RegExp(prefix.replace('(', '\\(')));
+    if (!match) return remaining;
+    const start = match.index!;
+    let depth = 0;
+    let end = -1;
+    for (let i = start + prefix.length; i < remaining.length; i++) {
+      if (remaining[i] === '(') depth++;
+      else if (remaining[i] === ')') {
+        if (depth === 0) { end = i; break; }
+        depth--;
+      }
+    }
+    if (end !== -1) {
+      setter(remaining.slice(start + prefix.length, end));
+      return remaining.slice(0, start) + remaining.slice(end + 1);
+    }
+    return remaining;
+  }
+
   private matchesPart(el: UIElement, part: SelectorPart): boolean {
     if (part.tag) {
       const tagLower = part.tag.toLowerCase();
@@ -226,11 +251,12 @@ export class SelectorEngine {
     }
     if (part.id && el.id !== part.id) return false;
 
+    if (part.focused === true && !el.focused) return false;
+    if (part.visible === true && el.getAttribute('visible') === 'false') return false;
+
     if (part.nthChild !== undefined) {
       const parent = el.parent;
       if (!parent) return part.nthChild === 1;
-      // When a tag is specified, count only siblings with the same tag
-      // (matches CSS :nth-of-type behavior that test authors expect)
       const siblings = part.tag
         ? parent.children.filter((c) => c.tag === part.tag)
         : parent.children;
@@ -259,9 +285,14 @@ export class SelectorEngine {
 
     if (part.has) {
       const subSegments = this.parse(part.has);
-      const descendants = this.flatten(el).slice(1); // exclude el itself
+      const descendants = this.flatten(el).slice(1);
       const anyMatch = descendants.some((d) => this.matchesChain(d, subSegments));
       if (!anyMatch) return false;
+    }
+
+    if (part.not) {
+      const subSegments = this.parse(part.not);
+      if (this.matchesChain(el, subSegments)) return false;
     }
 
     return true;
@@ -286,6 +317,19 @@ export class SelectorEngine {
         const prev: UIElement = p.children[sibIdx - 1];
         if (!this.matchesPart(prev, segments[i].part)) return false;
         current = prev;
+      } else if (rel === 'general-sibling') {
+        const p: UIElement | null = current.parent;
+        if (!p) return false;
+        const sibIdx: number = p.children.indexOf(current);
+        let found = false;
+        for (let s = sibIdx - 1; s >= 0; s--) {
+          if (this.matchesPart(p.children[s], segments[i].part)) {
+            current = p.children[s];
+            found = true;
+            break;
+          }
+        }
+        if (!found) return false;
       } else {
         let ancestor: UIElement | null = current.parent;
         let found = false;

@@ -103,14 +103,14 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0
       '@danecodes/uncle-jesse-core':
-        specifier: ^1.0.0
-        version: 1.0.0(@danecodes/roku-odc@0.4.1)(typescript@6.0.2)
+        specifier: workspace:^
+        version: link:../core
 
   packages/test:
     dependencies:
       '@danecodes/uncle-jesse-core':
-        specifier: ^1.0.0
-        version: 1.0.0(@danecodes/roku-odc@0.4.1)(typescript@6.0.2)
+        specifier: workspace:^
+        version: link:../core
       '@danecodes/uncle-jesse-roku':
         specifier: '>=1.2.0'
         version: 1.4.0(@danecodes/roku-odc@0.4.1)(typescript@6.0.2)
@@ -124,14 +124,14 @@ importers:
         specifier: 0.6.4
         version: 0.6.4
       '@danecodes/uncle-jesse-core':
-        specifier: ^1.0.0
-        version: 1.0.0(@danecodes/roku-odc@0.4.1)(typescript@6.0.2)
+        specifier: workspace:^
+        version: link:../core
       '@danecodes/uncle-jesse-roku':
-        specifier: ^1.0.0
-        version: 1.0.0
+        specifier: workspace:^
+        version: link:../roku
       '@danecodes/uncle-jesse-test':
-        specifier: ^1.0.0
-        version: 1.0.0(vitest@4.1.4(@types/node@25.6.0)(vite@8.0.8(@types/node@25.6.0)(esbuild@0.27.7)))
+        specifier: workspace:^
+        version: link:../test
       chalk:
         specifier: ^5.4.0
         version: 5.6.2
@@ -211,10 +211,6 @@ packages:
   '@changesets/write@0.4.0':
     resolution: {integrity: sha512-CdTLvIOPiCNuH71pyDu3rA+Q0n65cmAbXnwWH84rKGiFumFzkmHNT8KHTMEchcxN+Kl8I54xGUhJ7l3E7X396Q==}
 
-  '@danecodes/roku-ecp@0.5.2':
-    resolution: {integrity: sha512-OS9FBxeveNnNp258Qjcr7Ut56+hXSOUyo1rZgNWndyLVn+Coluq8jdkgTOcIpkxkN8cmRsFw/QrbRrbrX+5mPQ==}
-    engines: {node: '>=22'}
-
   '@danecodes/roku-ecp@0.6.4':
     resolution: {integrity: sha512-CyE/mGIuicnorb2BggrhvOiwCNGq7BHn4AY9ENd9e65b3B4fUo/Oxx/iZzJz6Ips3GcuwDgIfWIcCRGicSfTCQ==}
     engines: {node: '>=22'}
@@ -245,22 +241,9 @@ packages:
       '@danecodes/roku-odc':
         optional: true
 
-  '@danecodes/uncle-jesse-roku@1.0.0':
-    resolution: {integrity: sha512-z28h3gQMLLBxdzINvKZBRilS1h0VNEOfG25RzJgK1Yf5MCBtnz3+WZ5nibj48hncGFMEN36IyNSwE+Gg/nX8ag==}
-    engines: {node: '>=20'}
-
   '@danecodes/uncle-jesse-roku@1.4.0':
     resolution: {integrity: sha512-XwQ/bwHNoRyTLQXGkB45IYh68waC+t224YH/05sPHHm/WD0aRdebseEnnZ8BYwo5BkSld53xIBF5f3C82izNMg==}
     engines: {node: '>=20'}
-
-  '@danecodes/uncle-jesse-test@1.0.0':
-    resolution: {integrity: sha512-8zJ/HjniXM9gG9q7jhDTRw1Qe/xv1wVfHQ263BqdGSx4YnnMHMm6C8Hkt5KKsbc4t8RxwcEBjbWCzjAvA5IOoA==}
-    engines: {node: '>=20'}
-    peerDependencies:
-      vitest: '>=2.0.0'
-    peerDependenciesMeta:
-      vitest:
-        optional: true
 
   '@emnapi/core@1.9.2':
     resolution: {integrity: sha512-UC+ZhH3XtczQYfOlu3lNEkdW/p4dsJ1r/bP7H8+rhao3TTTMO1ATq/4DdIi23XuGoFY+Cz0JmCbdVl0hz9jZcA==}
@@ -1853,12 +1836,6 @@ snapshots:
       human-id: 4.1.3
       prettier: 2.8.8
 
-  '@danecodes/roku-ecp@0.5.2':
-    dependencies:
-      '@danecodes/roku-log': 0.1.0
-      fast-xml-parser: 5.5.11
-      yazl: 3.3.1
-
   '@danecodes/roku-ecp@0.6.4':
     dependencies:
       '@danecodes/roku-log': 0.1.0
@@ -1891,12 +1868,6 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@danecodes/uncle-jesse-roku@1.0.0':
-    dependencies:
-      '@danecodes/roku-ecp': 0.5.2
-      '@danecodes/roku-log': 0.1.0
-      '@danecodes/uncle-jesse-core': link:packages/core
-
   '@danecodes/uncle-jesse-roku@1.4.0(@danecodes/roku-odc@0.4.1)(typescript@6.0.2)':
     dependencies:
       '@danecodes/roku-ecp': 0.7.2
@@ -1905,12 +1876,6 @@ snapshots:
     transitivePeerDependencies:
       - '@danecodes/roku-odc'
       - typescript
-
-  '@danecodes/uncle-jesse-test@1.0.0(vitest@4.1.4(@types/node@25.6.0)(vite@8.0.8(@types/node@25.6.0)(esbuild@0.27.7)))':
-    dependencies:
-      '@danecodes/uncle-jesse-core': link:packages/core
-    optionalDependencies:
-      vitest: 4.1.4(@types/node@25.6.0)(vite@8.0.8(@types/node@25.6.0)(esbuild@0.27.7))
 
   '@emnapi/core@1.9.2':
     dependencies:

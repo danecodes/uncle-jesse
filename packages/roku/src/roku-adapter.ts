@@ -13,6 +13,8 @@ import {
   type WaitOptions,
   type WaitForStableOptions,
   type AppInfo,
+  type DeviceEvent,
+  type DeviceEventHandler,
   UIElement,
   setDefaultQueryEngine,
   DeviceConnectionError,
@@ -63,7 +65,8 @@ export class RokuAdapter implements TVDevice {
   private _logSession: LogSession = new LogSession();
   private _odc: OdcLike | null = null;
   private _treeCache: { tree: UiNode; ts: number } | null = null;
-  private _treeCacheTtl = 50; // ms - coalesce near-simultaneous queries
+  private _treeCacheTtl = 50;
+  private _eventHandlers: DeviceEventHandler[] = [];
 
   private _odcOptions: { ip?: string; port?: number } | null = null;
   private _devPassword: string | undefined;
@@ -164,11 +167,21 @@ export class RokuAdapter implements TVDevice {
     return this.connected;
   }
 
-  async press(key: RemoteKey, options?: { times?: number; delay?: number }): Promise<void> {
+  async press(key: RemoteKey | RemoteKey[], options?: { times?: number; delay?: number }): Promise<void> {
+    if (Array.isArray(key)) {
+      const delay = options?.delay ?? this.pressDelay;
+      for (const k of key) {
+        const ecpKey = RokuKeyMap[k];
+        await this.client.press(ecpKey, { times: 1, delay });
+        this.emit({ type: 'press', key: k, times: 1 });
+      }
+      return;
+    }
     const ecpKey = RokuKeyMap[key];
     const times = options?.times ?? 1;
     const delay = options?.delay ?? this.pressDelay;
     await this.client.press(ecpKey, { times, delay });
+    this.emit({ type: 'press', key, times });
   }
 
   async longPress(key: RemoteKey, duration?: number): Promise<void> {
@@ -179,6 +192,7 @@ export class RokuAdapter implements TVDevice {
   }
 
   async type(text: string): Promise<void> {
+    this.emit({ type: 'type', text });
     await this.client.type(text);
   }
 
@@ -219,6 +233,7 @@ export class RokuAdapter implements TVDevice {
   }
 
   async launchApp(appId: string, params?: Record<string, string>): Promise<void> {
+    this.emit({ type: 'launch', appId, params });
     await this.client.launch(appId, params);
 
     // Dismiss screensaver if the device was idle
@@ -237,6 +252,7 @@ export class RokuAdapter implements TVDevice {
   }
 
   async deepLink(channelId: string, contentId: string, mediaType?: string): Promise<void> {
+    this.emit({ type: 'deepLink', channelId, contentId });
     await this.client.deepLink(channelId, contentId, mediaType);
     await waitForApp(this.client, channelId, { timeout: 15000 });
   }
@@ -825,7 +841,31 @@ export class RokuAdapter implements TVDevice {
   }
 
   async screenshot(): Promise<Buffer> {
+    this.emit({ type: 'screenshot' });
     return this.client.takeScreenshot();
+  }
+
+  // Event emitter for breadcrumbs/logging
+
+  on(handler: DeviceEventHandler): void {
+    this._eventHandlers.push(handler);
+  }
+
+  off(handler: DeviceEventHandler): void {
+    const idx = this._eventHandlers.indexOf(handler);
+    if (idx >= 0) this._eventHandlers.splice(idx, 1);
+  }
+
+  private emit(event: DeviceEvent): void {
+    for (const h of this._eventHandlers) {
+      try { h(event); } catch { /* don't let handler errors break the adapter */ }
+    }
+  }
+
+  // Matcher sugar
+
+  async toHaveActiveApp(appId: string, options?: { timeout?: number }): Promise<void> {
+    await this.waitForAppState(appId, 'foreground', { timeout: options?.timeout ?? 10000 });
   }
 }
 
