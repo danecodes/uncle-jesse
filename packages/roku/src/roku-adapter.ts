@@ -18,6 +18,7 @@ import {
   type AppInfo,
   type DeviceEvent,
   type DeviceEventHandler,
+  type Logger,
   UIElement,
   setDefaultQueryEngine,
   DeviceConnectionError,
@@ -68,6 +69,7 @@ export class RokuAdapter implements TVDevice {
   private _logSession: LogSession = new LogSession();
   private _odc: OdcLike | null = null;
   private _treeCache: { tree: UiNode; ts: number } | null = null;
+  private _logHandlers: Array<(level: string, message: string, meta?: Record<string, unknown>) => void> = [];
   private _treeCacheTtl = 50;
   private _eventHandlers: DeviceEventHandler[] = [];
 
@@ -98,6 +100,28 @@ export class RokuAdapter implements TVDevice {
 
   get logs(): LogSession {
     return this._logSession;
+  }
+
+  logger: Logger = {
+    info: (msg, meta) => this._emitLog('info', msg, meta),
+    warn: (msg, meta) => this._emitLog('warn', msg, meta),
+    error: (msg, meta) => this._emitLog('error', msg, meta),
+    debug: (msg, meta) => this._emitLog('debug', msg, meta),
+  };
+
+  private _emitLog(level: string, message: string, meta?: Record<string, unknown>): void {
+    for (const h of this._logHandlers) {
+      try { h(level, message, meta); } catch { /* don't break caller */ }
+    }
+  }
+
+  /** Add a log handler. Returns a disposer function. */
+  onLog(handler: (level: string, message: string, meta?: Record<string, unknown>) => void): () => void {
+    this._logHandlers.push(handler);
+    return () => {
+      const idx = this._logHandlers.indexOf(handler);
+      if (idx >= 0) this._logHandlers.splice(idx, 1);
+    };
   }
 
   async connect(): Promise<void> {

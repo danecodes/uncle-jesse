@@ -1,6 +1,13 @@
 import type { Platform, RemoteKey, Direction, WaitOptions, AppInfo } from './types.js';
 import type { UIElement } from './ui-element.js';
 
+export interface Logger {
+  info(message: string, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  error(message: string, meta?: Record<string, unknown>): void;
+  debug(message: string, meta?: Record<string, unknown>): void;
+}
+
 export interface WaitForStableOptions {
   timeout?: number;
   interval?: number;
@@ -73,4 +80,7 @@ export interface TVDevice {
 
   deepLink(channelId: string, contentId: string, mediaType?: string): Promise<void>;
   screenshot(): Promise<Buffer>;
+
+  /** Structured logger for breadcrumbs. Consumers and session attach handlers. */
+  logger: Logger;
 }

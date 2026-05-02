@@ -73,6 +73,8 @@ export class RokuTestSession<TApp = unknown> implements RokuSession<TApp> {
   private _stopLogCapture: (() => void) | null;
   private _options: RokuSessionOptions;
   private _hooks: RokuSessionOptions['hooks'];
+  private _logLines: string[] = [];
+  private _disposeLogHandler: (() => void) | null = null;
 
   private constructor(
     device: TVDevice,
@@ -168,7 +170,20 @@ export class RokuTestSession<TApp = unknown> implements RokuSession<TApp> {
       await options.hooks.afterLaunch(device, app);
     }
 
-    return new RokuTestSession<TApp>(device, app, options.artifacts, stopLogCapture, options);
+    const session = new RokuTestSession<TApp>(device, app, options.artifacts, stopLogCapture, options);
+
+    // Wire logger to capture log lines when artifacts.captureLog is set
+    if (options.artifacts?.captureLog && typeof (device as any).onLog === 'function') {
+      session._disposeLogHandler = (device as any).onLog(
+        (level: string, message: string, meta?: Record<string, unknown>) => {
+          const ts = new Date().toISOString();
+          const metaStr = meta ? ' ' + JSON.stringify(meta) : '';
+          session._logLines.push(`${ts} [${level.toUpperCase()}] ${message}${metaStr}`);
+        },
+      );
+    }
+
+    return session;
   }
 
   async screenshot(): Promise<Buffer | null> {
@@ -223,9 +238,24 @@ export class RokuTestSession<TApp = unknown> implements RokuSession<TApp> {
     }
   }
 
+  /** Save captured logger output to a file. */
+  async saveLog(name: string): Promise<string | null> {
+    if (this._logLines.length === 0) return null;
+    const fs = await import('node:fs/promises');
+    const path = await import('node:path');
+    const dir = this._artifacts?.baseDir ?? 'test-results';
+    await fs.mkdir(dir, { recursive: true });
+    const file = path.join(dir, `${name}.log`);
+    await fs.writeFile(file, this._logLines.join('\n') + '\n');
+    return file;
+  }
+
   async dispose(): Promise<void> {
     if (this._hooks?.beforeDispose) {
       await this._hooks.beforeDispose(this._device);
+    }
+    if (this._disposeLogHandler) {
+      this._disposeLogHandler();
     }
     if (this._stopLogCapture) {
       this._stopLogCapture();
