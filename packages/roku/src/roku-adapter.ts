@@ -408,18 +408,34 @@ export class RokuAdapter implements TVDevice {
     return RokuAdapter.MODAL_TAGS.some((m) => tag.includes(m) || ext.includes(m));
   }
 
+  private isNodeVisible(node: UiNode): boolean {
+    return node.attrs['visible'] !== 'false' && node.attrs['opacity'] !== '0';
+  }
+
+  /** Pick best branch from multiple focused candidates. */
+  private pickFocusedBranch(candidates: UiNode[]): UiNode {
+    // 1. Modal branch wins
+    const modal = candidates.find((c) =>
+      this.isModalBranch(c) || this.hasModalAncestor(c),
+    );
+    if (modal) return modal;
+
+    // 2. Prefer visible branch (skip outgoing pages with visible=false)
+    const visible = candidates.filter((c) => this.isNodeVisible(c));
+    if (visible.length === 1) return visible[0];
+    if (visible.length > 1) return visible[visible.length - 1];
+
+    // 3. Last child as fallback
+    return candidates[candidates.length - 1];
+  }
+
   private findFocusLeaf(node: UiNode): UiNode | null {
     const focusedChildren = node.children.filter(
       (c) => c.attrs['focused'] === 'true',
     );
 
     if (focusedChildren.length > 1) {
-      // Multiple focused branches (e.g., dialog over main content).
-      // Prefer the branch under a dialog/overlay/modal ancestor.
-      const modalBranch = focusedChildren.find((c) =>
-        this.isModalBranch(c) || this.hasModalAncestor(c),
-      );
-      const pick = modalBranch ?? focusedChildren[focusedChildren.length - 1];
+      const pick = this.pickFocusedBranch(focusedChildren);
       return this.findFocusLeaf(pick) ?? pick;
     }
 
@@ -427,16 +443,10 @@ export class RokuAdapter implements TVDevice {
       return this.findFocusLeaf(focusedChildren[0]) ?? focusedChildren[0];
     }
 
-    // No direct focused child. Check if any child has a focused descendant
-    // (handles cases like PosterGrid where the container isn't focused).
-    // Same modal preference: if multiple children have focused descendants,
-    // prefer the modal branch.
+    // No direct focused child. Check descendants (e.g. PosterGrid).
     const branchesWithFocus = node.children.filter((c) => this.hasFocusedDescendant(c));
     if (branchesWithFocus.length > 1) {
-      const modalBranch = branchesWithFocus.find((c) =>
-        this.isModalBranch(c) || this.hasModalAncestor(c),
-      );
-      const pick = modalBranch ?? branchesWithFocus[branchesWithFocus.length - 1];
+      const pick = this.pickFocusedBranch(branchesWithFocus);
       return this.findFocusLeaf(pick);
     }
     if (branchesWithFocus.length === 1) {

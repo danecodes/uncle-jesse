@@ -225,9 +225,11 @@ export class LiveElement {
       if (!targetHasStableId && target.focused) return;
 
       // 4. Cycle detection: track visited positions and which directions
-      //    we've already tried from each position. When the greedy best
-      //    direction has been tried before from this node, try alternates.
+      //    we've already tried from each position. Only track elements with
+      //    stable identifiers (name/id/title). Geometric fingerprints
+      //    (tag#index@bounds) change during animations and cause false cycles.
       const fp = elementFingerprint(active);
+      const fpIsStable = fp ? !fp.includes('#') || !fp.includes('@') : false;
 
       // 5. Get absolute rects
       const targetRect = getBounds(target);
@@ -276,7 +278,8 @@ export class LiveElement {
       candidates.sort((a, b) => a.gap - b.gap);
 
       // 7. Pick direction, skipping directions already tried from this node.
-      const triedHere = fp ? (visited.get(fp) ?? new Set<Direction>()) : new Set<Direction>();
+      //    Only track stable fingerprints; geometric ones change during animation.
+      const triedHere = (fp && fpIsStable) ? (visited.get(fp) ?? new Set<Direction>()) : new Set<Direction>();
       let direction: Direction | null = null;
       for (const candidate of candidates) {
         if (!triedHere.has(candidate.direction)) {
@@ -286,14 +289,24 @@ export class LiveElement {
       }
 
       if (!direction) {
-        // All directions from this node have been tried -- we're stuck.
+        // All directions tried from this fingerprint. Grace poll: re-resolve
+        // after a short wait in case a page transition changed the state.
+        await sleep(500);
+        const recheck = await this.resolve();
+        if (recheck?.focused) return;
+        const recheckFp = elementFingerprint(await this.device.getFocusedElement());
+        if (recheckFp !== fp) {
+          // State changed during grace period, clear visited for this fp and retry
+          if (fp) visited.delete(fp);
+          continue;
+        }
         throw new Error(
           `Could not focus ${this.fullSelector}: navigation cycled at ${fp} after ${trail.length} presses (tried: ${trail.join(',')})`
         );
       }
 
       // Record that we tried this direction from this position
-      if (fp) {
+      if (fp && fpIsStable) {
         triedHere.add(direction);
         visited.set(fp, triedHere);
       }
