@@ -579,8 +579,36 @@ export class RokuAdapter implements TVDevice {
     return this._logSession.crashes.length > 0;
   }
 
-  getLogSummary() {
-    return this._logSession.summary();
+  getLogSummary(options?: { since?: Date; until?: Date }) {
+    return this._logSession.summary(options);
+  }
+
+  /** Get beacons, optionally filtered by time range. */
+  getBeacons(options?: { since?: Date; until?: Date }) {
+    return this._logSession.getBeacons(options);
+  }
+
+  /** Wait for a log line matching a regex pattern. */
+  async matchLog(pattern: RegExp, options?: { timeout?: number }): Promise<RegExpMatchArray> {
+    if (!this.logStream) throw new Error('Log capture not started. Call startLogCapture() first.');
+    return this.logStream.match(pattern, options);
+  }
+
+  /** Collect all log lines matching a regex over a duration. */
+  async matchAllLogs(pattern: RegExp, options?: { duration?: number }): Promise<RegExpMatchArray[]> {
+    if (!this.logStream) throw new Error('Log capture not started. Call startLogCapture() first.');
+    return this.logStream.matchAll(pattern, options);
+  }
+
+  /** Wait for a log entry matching a predicate. */
+  async waitForLog(predicate: (entry: LogEntry) => boolean, options?: { timeout?: number }): Promise<LogEntry> {
+    if (!this.logStream) throw new Error('Log capture not started. Call startLogCapture() first.');
+    return this.logStream.waitFor(predicate, options);
+  }
+
+  /** Check if log stream is currently connected. */
+  get isLogConnected(): boolean {
+    return this.logStream?.isConnected ?? false;
   }
 
   setOdc(odc: OdcLike): void {
