@@ -369,7 +369,7 @@ export class LiveElement {
   }
 
   async waitForDisplayed(options?: WaitOptions): Promise<void> {
-    const timeout = options?.timeout ?? 10000;
+    const timeout = options?.timeout ?? 30000;
     const interval = options?.interval ?? 200;
     const start = Date.now();
 
@@ -382,7 +382,7 @@ export class LiveElement {
   }
 
   async waitForExisting(options?: WaitOptions): Promise<void> {
-    const timeout = options?.timeout ?? 10000;
+    const timeout = options?.timeout ?? 30000;
     const interval = options?.interval ?? 200;
     const start = Date.now();
 
@@ -428,7 +428,7 @@ export class LiveElement {
     if (options?.inverted) {
       return this.toNotBeFocused(options);
     }
-    const timeout = options?.timeout ?? 10000;
+    const timeout = options?.timeout ?? 30000;
     const interval = options?.interval ?? 200;
     const start = Date.now();
 
@@ -461,7 +461,7 @@ export class LiveElement {
   }
 
   async toNotBeDisplayed(options?: WaitOptions): Promise<void> {
-    const timeout = options?.timeout ?? 10000;
+    const timeout = options?.timeout ?? 30000;
     const interval = options?.interval ?? 200;
     const start = Date.now();
 
@@ -476,7 +476,7 @@ export class LiveElement {
   }
 
   async toHaveText(expected: string | RegExp, options?: WaitOptions): Promise<void> {
-    const timeout = options?.timeout ?? 10000;
+    const timeout = options?.timeout ?? 30000;
     const interval = options?.interval ?? 200;
     const start = Date.now();
 
@@ -508,7 +508,7 @@ export class LiveElement {
     expected: string | RegExp,
     options?: WaitOptions,
   ): Promise<void> {
-    const timeout = options?.timeout ?? 10000;
+    const timeout = options?.timeout ?? 30000;
     const interval = options?.interval ?? 200;
     const start = Date.now();
 
@@ -538,7 +538,7 @@ export class LiveElement {
     expected: string | RegExp,
     options?: WaitOptions,
   ): Promise<void> {
-    const timeout = options?.timeout ?? 10000;
+    const timeout = options?.timeout ?? 30000;
     const interval = options?.interval ?? 200;
     const start = Date.now();
 
@@ -557,7 +557,7 @@ export class LiveElement {
   }
 
   async toNotExist(options?: WaitOptions): Promise<void> {
-    const timeout = options?.timeout ?? 10000;
+    const timeout = options?.timeout ?? 30000;
     const interval = options?.interval ?? 200;
     const start = Date.now();
 
@@ -572,7 +572,7 @@ export class LiveElement {
   }
 
   async toNotBeFocused(options?: WaitOptions): Promise<void> {
-    const timeout = options?.timeout ?? 10000;
+    const timeout = options?.timeout ?? 30000;
     const interval = options?.interval ?? 200;
     const start = Date.now();
 
@@ -588,7 +588,7 @@ export class LiveElement {
   }
 
   async toNotHaveText(expected: string | RegExp, options?: WaitOptions): Promise<void> {
-    const timeout = options?.timeout ?? 10000;
+    const timeout = options?.timeout ?? 30000;
     const interval = options?.interval ?? 200;
     const start = Date.now();
 
@@ -606,7 +606,7 @@ export class LiveElement {
   }
 
   async toHaveTextContaining(text: string, options?: WaitOptions): Promise<void> {
-    const timeout = options?.timeout ?? 10000;
+    const timeout = options?.timeout ?? 30000;
     const interval = options?.interval ?? 200;
     const start = Date.now();
 
@@ -657,7 +657,7 @@ export class LiveElement {
     expected: { x?: number; y?: number; width?: number; height?: number },
     options?: WaitOptions,
   ): Promise<void> {
-    const timeout = options?.timeout ?? 10000;
+    const timeout = options?.timeout ?? 30000;
     const start = Date.now();
 
     while (Date.now() - start < timeout) {
@@ -715,7 +715,7 @@ export class ElementCollection {
     expected: number | { gte?: number; lte?: number; gt?: number; lt?: number; eq?: number },
     options?: WaitOptions,
   ): Promise<void> {
-    const timeout = options?.timeout ?? 10000;
+    const timeout = options?.timeout ?? 30000;
     const interval = options?.interval ?? 200;
     const start = Date.now();
 
@@ -745,7 +745,7 @@ export class ElementCollection {
     expected: string[] | { asymmetricMatch(actual: unknown): boolean },
     options?: WaitOptions,
   ): Promise<void> {
-    const timeout = options?.timeout ?? 10000;
+    const timeout = options?.timeout ?? 30000;
     const interval = options?.interval ?? 200;
     const start = Date.now();
 
@@ -768,7 +768,7 @@ export class ElementCollection {
   }
 
   async toHaveTextInOrder(expected: (string | RegExp)[], options?: WaitOptions): Promise<void> {
-    const timeout = options?.timeout ?? 10000;
+    const timeout = options?.timeout ?? 30000;
     const interval = options?.interval ?? 200;
     const start = Date.now();
 
@@ -848,7 +848,7 @@ export class TypedElementCollection<T extends BaseComponent> {
     expected: number | { gte?: number; lte?: number; gt?: number; lt?: number; eq?: number },
     options?: WaitOptions,
   ): Promise<void> {
-    const timeout = options?.timeout ?? 10000;
+    const timeout = options?.timeout ?? 30000;
     const interval = options?.interval ?? 250;
     const start = Date.now();
 
@@ -877,7 +877,7 @@ export class TypedElementCollection<T extends BaseComponent> {
   }
 
   async toNotBeEmpty(options?: WaitOptions): Promise<void> {
-    const timeout = options?.timeout ?? 10000;
+    const timeout = options?.timeout ?? 30000;
     const interval = options?.interval ?? 250;
     const start = Date.now();
     while (Date.now() - start < timeout) {
@@ -971,7 +971,7 @@ export class BaseComponent {
     predicate: () => Promise<boolean>,
     options?: { timeout?: number; interval?: number; timeoutMsg?: string },
   ): Promise<void> {
-    const timeout = options?.timeout ?? 10000;
+    const timeout = options?.timeout ?? 30000;
     const interval = options?.interval ?? 200;
     const start = Date.now();
 
