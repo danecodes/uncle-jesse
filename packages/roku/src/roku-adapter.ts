@@ -490,7 +490,11 @@ export class RokuAdapter implements TVDevice {
     const start = Date.now();
 
     while (Date.now() - start < timeout) {
-      if (await predicate()) return;
+      try {
+        if (await predicate()) return;
+      } catch {
+        // Swallow predicate errors and retry
+      }
       await new Promise((r) => setTimeout(r, interval));
     }
 

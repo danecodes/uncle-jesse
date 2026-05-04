@@ -402,7 +402,11 @@ export class LiveElement {
   ): Promise<boolean> {
     if (!this.device.observeField) return false;
     const el = await this.resolve();
-    const nodeId = el?.id;
+    if (!el) return false;
+    // Only use ODC observation with unique node identifiers.
+    // `name` is NOT unique across siblings on Roku -- using it causes
+    // observeField to attach to the wrong node and silently hang.
+    const nodeId = el.getAttribute('uiElementId') ?? el.getAttribute('id');
     if (!nodeId) return false;
     try {
       const result = await this.device.observeField(nodeId, field, { match, timeout });
@@ -972,7 +976,11 @@ export class BaseComponent {
     const start = Date.now();
 
     while (Date.now() - start < timeout) {
-      if (await predicate()) return;
+      try {
+        if (await predicate()) return;
+      } catch {
+        // Swallow predicate errors and retry (e.g. expect() inside waitUntil)
+      }
       await sleep(interval);
     }
 
