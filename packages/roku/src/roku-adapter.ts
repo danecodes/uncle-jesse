@@ -359,7 +359,9 @@ export class RokuAdapter implements TVDevice {
   private elementToUiNode(el: UIElement, parent?: UiNode): UiNode {
     const attrs = { ...el.attributes };
     const name = attrs['name'];
-    delete attrs['name'];
+    // Keep name in attrs so scoped #id queries work when round-tripping
+    // through elementToUiNode -> findElement. The ECP selector engine
+    // checks node.attrs.name for #id matching.
     const node: UiNode = {
       tag: el.tag,
       name,
@@ -414,19 +416,20 @@ export class RokuAdapter implements TVDevice {
 
   /** Pick best branch from multiple focused candidates. */
   private pickFocusedBranch(candidates: UiNode[]): UiNode {
-    // 1. Modal branch wins
-    const modal = candidates.find((c) =>
-      this.isModalBranch(c) || this.hasModalAncestor(c),
-    );
-    if (modal) return modal;
-
-    // 2. Prefer visible branch (skip outgoing pages with visible=false)
+    // 1. Filter out invisible branches first (outgoing/unmounting pages)
     const visible = candidates.filter((c) => this.isNodeVisible(c));
-    if (visible.length === 1) return visible[0];
-    if (visible.length > 1) return visible[visible.length - 1];
+    const pool = visible.length > 0 ? visible : candidates;
 
-    // 3. Last child as fallback
-    return candidates[candidates.length - 1];
+    // 2. Among visible candidates, prefer modal branch
+    if (pool.length > 1) {
+      const modal = pool.find((c) =>
+        this.isModalBranch(c) || this.hasModalAncestor(c),
+      );
+      if (modal) return modal;
+    }
+
+    // 3. Last visible child (most recently added in render order)
+    return pool[pool.length - 1];
   }
 
   private findFocusLeaf(node: UiNode): UiNode | null {

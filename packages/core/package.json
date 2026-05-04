@@ -1,6 +1,6 @@
 {
   "name": "@danecodes/uncle-jesse-core",
-  "version": "2.3.3",
+  "version": "2.3.4",
   "type": "module",
   "exports": {
     ".": {

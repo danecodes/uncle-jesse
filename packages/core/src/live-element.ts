@@ -916,6 +916,31 @@ class IndexedLiveElement extends LiveElement {
     return all[this.index] ?? null;
   }
 
+  /** Scope child queries through the resolved indexed root. */
+  $(childSelector: string): LiveElement {
+    const parent = this;
+    const scoped = new LiveElement(this.device, childSelector);
+    (scoped as any).resolve = async () => {
+      const root = await parent.resolve();
+      return root ? root.$(childSelector) : null;
+    };
+    return scoped;
+  }
+
+  $$(childSelector: string): ElementCollection;
+  $$<T extends BaseComponent>(childSelector: string, ComponentClass: new (el: LiveElement) => T): TypedElementCollection<T>;
+  $$(childSelector: string, ComponentClass?: new (el: LiveElement) => any): any {
+    const parent = this;
+    const fakeDevice = {
+      $: (sel: string) => parent.resolve().then((r) => (r ? r.$(sel) : null)),
+      $$: (sel: string) => parent.resolve().then((r) => (r ? r.$$(sel) : [])),
+    } as any;
+    if (ComponentClass) {
+      return new TypedElementCollection(fakeDevice, childSelector, undefined, ComponentClass);
+    }
+    return new ElementCollection(fakeDevice, childSelector, undefined);
+  }
+
   async focus(options?: { maxAttempts?: number; timeout?: number }): Promise<void> {
     const timeout = options?.timeout ?? 15000;
     const start = Date.now();
