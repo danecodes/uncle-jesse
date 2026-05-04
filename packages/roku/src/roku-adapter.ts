@@ -68,9 +68,7 @@ export class RokuAdapter implements TVDevice {
   private logStream: LogStream | null = null;
   private _logSession: LogSession = new LogSession();
   private _odc: OdcLike | null = null;
-  private _treeCache: { tree: UiNode; ts: number } | null = null;
   private _logHandlers: Array<(level: string, message: string, meta?: Record<string, unknown>) => void> = [];
-  private _treeCacheTtl = 50;
   private _eventHandlers: DeviceEventHandler[] = [];
 
   private _odcOptions: { ip?: string; port?: number } | null = null;
@@ -82,6 +80,8 @@ export class RokuAdapter implements TVDevice {
     devPassword?: string;
     timeout?: number;
     pressDelay?: number;
+    retries?: number;
+    retryDelay?: number;
     /** Auto-create ODC client on connect. Pass true for defaults or { port } to customize. */
     odc?: boolean | { ip?: string; port?: number };
   }) {
@@ -92,6 +92,8 @@ export class RokuAdapter implements TVDevice {
     this.client = new EcpClient(options.ip, {
       devPassword: options.devPassword,
       timeout: options.timeout,
+      retries: options.retries,
+      retryDelay: options.retryDelay,
     });
     if (options.odc) {
       this._odcOptions = options.odc === true ? {} : options.odc;
@@ -327,13 +329,8 @@ export class RokuAdapter implements TVDevice {
   };
 
   private async getRawUITree(): Promise<UiNode> {
-    const now = Date.now();
-    if (this._treeCache && now - this._treeCache.ts < this._treeCacheTtl) {
-      return this._treeCache.tree;
-    }
-    const tree = await this.getTreeSource();
-    this._treeCache = { tree, ts: now };
-    return tree;
+    // ECP 0.8.0 handles caching internally (dirty on keypress/launch)
+    return this.getTreeSource();
   }
 
   private uiNodeToElement(node: UiNode, parent: UIElement | null = null): UIElement {
@@ -632,7 +629,7 @@ export class RokuAdapter implements TVDevice {
 
   // Sideload
 
-  async sideload(pathOrDir: string, options?: { skipInject?: boolean }): Promise<void> {
+  async sideload(pathOrDir: string, options?: { skipInject?: boolean; force?: boolean }): Promise<void> {
     const fs = await import('node:fs/promises');
     const stat = await fs.stat(pathOrDir);
 
@@ -671,7 +668,7 @@ export class RokuAdapter implements TVDevice {
       }
     }
 
-    await this.client.sideload(pathOrDir);
+    await this.client.sideload(pathOrDir, { force: options?.force });
   }
 
   // ODC node primitives (requires roku-odc >= 0.3.0)
@@ -896,6 +893,48 @@ export class RokuAdapter implements TVDevice {
   async getPageSourceFormatted(): Promise<string> {
     const raw = await this.getRawUITree();
     return formatTree(raw);
+  }
+
+  // SceneGraph debug
+
+  async getSGNodesAll(): Promise<string> {
+    return this.client.querySGNodesAll();
+  }
+
+  async getSGNodesRoots(): Promise<string> {
+    return this.client.querySGNodesRoots();
+  }
+
+  async getSGNode(nodeId: string): Promise<string> {
+    return this.client.querySGNodesNodes(nodeId);
+  }
+
+  // Performance
+
+  async getGraphicsFrameRate(): Promise<string> {
+    return this.client.queryGraphicsFrameRate();
+  }
+
+  async getAppObjectCounts(): Promise<string> {
+    return this.client.queryAppObjectCounts();
+  }
+
+  async getAppThreadState(): Promise<string> {
+    return this.client.queryAppState();
+  }
+
+  // Rendezvous tracking
+
+  async startRendezvousTracking(): Promise<void> {
+    await this.client.trackSGRendezvous();
+  }
+
+  async stopRendezvousTracking(): Promise<void> {
+    await this.client.untrackSGRendezvous();
+  }
+
+  async getRendezvousData(): Promise<string> {
+    return this.client.querySGRendezvous();
   }
 
   async screenshot(): Promise<Buffer> {

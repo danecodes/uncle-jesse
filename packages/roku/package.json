@@ -1,6 +1,6 @@
 {
   "name": "@danecodes/uncle-jesse-roku",
-  "version": "2.2.2",
+  "version": "2.3.0",
   "type": "module",
   "exports": {
     ".": {
@@ -22,7 +22,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@danecodes/roku-ecp": "^0.7.4",
+    "@danecodes/roku-ecp": "^0.8.0",
     "@danecodes/roku-log": "^0.2.0",
     "@danecodes/uncle-jesse-core": "workspace:^"
   },
