@@ -379,15 +379,16 @@ export class RokuAdapter implements TVDevice {
   }
 
   async $(selector: string): Promise<UIElement | null> {
-    const raw = await this.getRawUITree();
-    const found = findElement(raw, selector);
-    return found ? this.uiNodeToElement(found) : null;
+    // Convert full tree to UIElements (preserving parent chain), then
+    // query within the converted tree so results have proper parents
+    // for getBounds() ancestor walking and fingerprinting.
+    const tree = await this.getUITree();
+    return tree.$(selector);
   }
 
   async $$(selector: string): Promise<UIElement[]> {
-    const raw = await this.getRawUITree();
-    const found = findElements(raw, selector);
-    return found.map((n) => this.uiNodeToElement(n));
+    const tree = await this.getUITree();
+    return tree.$$(selector);
   }
 
   async getFocusedElement(): Promise<UIElement | null> {
@@ -525,13 +526,16 @@ export class RokuAdapter implements TVDevice {
   }
 
   async waitForElement(selector: string, options?: WaitOptions): Promise<UIElement> {
-    const node = await ecpWaitForElement(this.getTreeSource, selector, options);
-    return this.uiNodeToElement(node);
+    // Use ECP polling, then re-resolve from full tree for proper parent chain
+    await ecpWaitForElement(this.getTreeSource, selector, options);
+    const tree = await this.getUITree();
+    return tree.$(selector)!;
   }
 
   async waitForFocus(selector: string, options?: WaitOptions): Promise<UIElement> {
-    const node = await ecpWaitForFocus(this.getTreeSource, selector, options);
-    return this.uiNodeToElement(node);
+    await ecpWaitForFocus(this.getTreeSource, selector, options);
+    const tree = await this.getUITree();
+    return tree.$(selector)!;
   }
 
   async waitForCondition<T>(predicate: () => Promise<T | null | false>, options?: WaitOptions): Promise<T> {
