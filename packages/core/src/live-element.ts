@@ -259,42 +259,48 @@ export class LiveElement {
         active.getAttribute('uiElementId') || active.getAttribute('title'));
       const fpIsStable = !!fp && hasRealId;
 
-      // 5. Get absolute rects
-      const targetRect = getBounds(target);
-      const activeRect = getBounds(active);
-
-      if (!targetRect || !activeRect) {
-        await sleep(200);
-        continue;
-      }
-
-      // 6. Collect directions. Try strict non-overlapping edge gates first.
+      // 5. Try lineage-index navigation first when active and target share
+      //    a list-like ancestor (FocusLayoutGroup, LayoutGroup, RowList).
+      //    Bounds are unreliable for virtualized lists where children report
+      //    layout-slot positions, not screen positions.
+      const lineageDir = getLineageDirection(active, target);
       const candidates: Array<{ direction: Direction; gap: number }> = [];
 
-      if (targetRect.y + targetRect.height <= activeRect.y) {
-        candidates.push({ direction: 'up', gap: activeRect.y - (targetRect.y + targetRect.height) });
-      }
-      if (targetRect.y >= activeRect.y + activeRect.height) {
-        candidates.push({ direction: 'down', gap: targetRect.y - (activeRect.y + activeRect.height) });
-      }
-      if (targetRect.x + targetRect.width <= activeRect.x) {
-        candidates.push({ direction: 'left', gap: activeRect.x - (targetRect.x + targetRect.width) });
-      }
-      if (targetRect.x >= activeRect.x + activeRect.width) {
-        candidates.push({ direction: 'right', gap: targetRect.x - (activeRect.x + activeRect.width) });
-      }
+      if (lineageDir) {
+        candidates.push({ direction: lineageDir, gap: 1 });
+      } else {
+        // 6. Fall back to bounds-based direction computation.
+        const targetRect = getBounds(target);
+        const activeRect = getBounds(active);
 
-      // Fallback: when strict produces zero candidates (overlapping bounds),
-      // use center-point comparison on the dominant axis only. Single
-      // candidate avoids zig-zag cycling on 1px deltas.
-      if (candidates.length === 0) {
-        const dx = (targetRect.x + targetRect.width / 2) - (activeRect.x + activeRect.width / 2);
-        const dy = (targetRect.y + targetRect.height / 2) - (activeRect.y + activeRect.height / 2);
+        if (!targetRect || !activeRect) {
+          await sleep(200);
+          continue;
+        }
 
-        if (Math.abs(dx) > Math.abs(dy)) {
-          candidates.push({ direction: dx > 0 ? 'right' : 'left', gap: Math.abs(dx) });
-        } else if (Math.abs(dy) > 0) {
-          candidates.push({ direction: dy > 0 ? 'down' : 'up', gap: Math.abs(dy) });
+        if (targetRect.y + targetRect.height <= activeRect.y) {
+          candidates.push({ direction: 'up', gap: activeRect.y - (targetRect.y + targetRect.height) });
+        }
+        if (targetRect.y >= activeRect.y + activeRect.height) {
+          candidates.push({ direction: 'down', gap: targetRect.y - (activeRect.y + activeRect.height) });
+        }
+        if (targetRect.x + targetRect.width <= activeRect.x) {
+          candidates.push({ direction: 'left', gap: activeRect.x - (targetRect.x + targetRect.width) });
+        }
+        if (targetRect.x >= activeRect.x + activeRect.width) {
+          candidates.push({ direction: 'right', gap: targetRect.x - (activeRect.x + activeRect.width) });
+        }
+
+        // Center-point fallback for overlapping bounds
+        if (candidates.length === 0) {
+          const dx = (targetRect.x + targetRect.width / 2) - (activeRect.x + activeRect.width / 2);
+          const dy = (targetRect.y + targetRect.height / 2) - (activeRect.y + activeRect.height / 2);
+
+          if (Math.abs(dx) > Math.abs(dy)) {
+            candidates.push({ direction: dx > 0 ? 'right' : 'left', gap: Math.abs(dx) });
+          } else if (Math.abs(dy) > 0) {
+            candidates.push({ direction: dy > 0 ? 'down' : 'up', gap: Math.abs(dy) });
+          }
         }
       }
 
@@ -370,7 +376,7 @@ export class LiveElement {
       const pollStart = Date.now();
       let moved = false;
       let pollDelay = 150;
-      while (Date.now() - pollStart < 800) {
+      while (Date.now() - pollStart < 2000) {
         await sleep(pollDelay);
         pollDelay = Math.min(pollDelay * 2, 400);
         const newActive = await this.device.getFocusedElement();
@@ -1186,6 +1192,69 @@ function getBounds(el: {
   }
 
   return { x, y, width: rect.width, height: rect.height };
+}
+
+const LIST_TAGS = ['focuslayoutgroup', 'layoutgroup', 'rowlist', 'markuplist', 'labellist', 'postergrid'];
+
+/**
+ * If active and target share a list-like lowest common ancestor,
+ * return the direction to press based on child index comparison.
+ * Returns null if they don't share a list ancestor (use bounds instead).
+ */
+function getLineageDirection(
+  active: { tag: string; parent?: any; getAttribute?(n: string): string | undefined },
+  target: { tag: string; parent?: any; getAttribute?(n: string): string | undefined },
+): Direction | null {
+  // Build ancestor chains
+  const activeChain = getAncestorChain(active);
+  const targetChain = getAncestorChain(target);
+
+  // Find lowest common ancestor
+  let lcaDepth = -1;
+  const minLen = Math.min(activeChain.length, targetChain.length);
+  for (let i = 0; i < minLen; i++) {
+    if (activeChain[i] === targetChain[i] ||
+        nodeIdent(activeChain[i]) === nodeIdent(targetChain[i])) {
+      lcaDepth = i;
+    } else {
+      break;
+    }
+  }
+
+  if (lcaDepth < 0) return null;
+  const lca = activeChain[lcaDepth];
+
+  // Check if LCA is a list-like container
+  const lcaTag = lca.tag.toLowerCase();
+  const lcaExtends = (typeof lca.getAttribute === 'function' ? lca.getAttribute('extends') : undefined) ?? '';
+  const isList = LIST_TAGS.some((t) => lcaTag.includes(t) || lcaExtends.toLowerCase().includes(t));
+  if (!isList) return null;
+
+  // Get the immediate children of LCA on each chain
+  const activeChildIdx = lcaDepth + 1 < activeChain.length ? indexInParent(activeChain[lcaDepth + 1]) : -1;
+  const targetChildIdx = lcaDepth + 1 < targetChain.length ? indexInParent(targetChain[lcaDepth + 1]) : -1;
+
+  if (activeChildIdx < 0 || targetChildIdx < 0 || activeChildIdx === targetChildIdx) return null;
+
+  // Determine direction based on layout
+  const layoutDir = typeof lca.getAttribute === 'function' ? lca.getAttribute('layoutDirection') : undefined;
+  const isHorizontal = layoutDir === 'horiz';
+
+  if (targetChildIdx > activeChildIdx) {
+    return isHorizontal ? 'right' : 'down';
+  } else {
+    return isHorizontal ? 'left' : 'up';
+  }
+}
+
+function getAncestorChain(el: { parent?: any }): any[] {
+  const chain: any[] = [];
+  let cur = el;
+  while (cur) {
+    chain.unshift(cur);
+    cur = cur.parent;
+  }
+  return chain;
 }
 
 /** Check if `ancestor` is an ancestor of `descendant` by comparing lineage paths. */
