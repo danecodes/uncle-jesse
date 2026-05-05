@@ -249,7 +249,11 @@ export class LiveElement {
       //    stable identifiers (name/id/title). Geometric fingerprints
       //    (tag#index@bounds) change during animations and cause false cycles.
       const fp = elementFingerprint(active);
-      const fpIsStable = fp ? !fp.includes('#') || !fp.includes('@') : false;
+      // Fingerprint is stable if the element has a real identifier (not just tag name).
+      // Stable fingerprints are tracked for cycle detection.
+      const hasRealId = !!(active.getAttribute('name') || active.id || active.getAttribute('id') ||
+        active.getAttribute('uiElementId') || active.getAttribute('title'));
+      const fpIsStable = !!fp && hasRealId;
 
       // 5. Get absolute rects
       const targetRect = getBounds(target);
@@ -1224,14 +1228,16 @@ function elementFingerprint(
   el: { tag: string; id?: string; getAttribute(n: string): string | undefined } | null | undefined,
 ): string | undefined {
   if (!el) return undefined;
-  const name = el.getAttribute('name');
-  if (name) return name;
-  const id = el.id ?? el.getAttribute('id');
-  if (id) return id;
-  const uiElementId = el.getAttribute('uiElementId');
-  if (uiElementId) return uiElementId;
-  const title = el.getAttribute('title');
-  if (title) return title;
-  // Fallback: compound key using index + bounds to distinguish anonymous siblings
-  return `${el.tag}#${el.getAttribute('index') ?? ''}@${el.getAttribute('bounds') ?? ''}`;
+  // Always include bounds and index so siblings sharing the same
+  // id/name (e.g. play_button in adjacent CollectionModules) produce
+  // different fingerprints when they're at different positions.
+  const ident =
+    el.getAttribute('name') ??
+    el.id ?? el.getAttribute('id') ??
+    el.getAttribute('uiElementId') ??
+    el.getAttribute('title') ??
+    el.tag;
+  const bounds = el.getAttribute('bounds') ?? '';
+  const index = el.getAttribute('index') ?? '';
+  return `${ident}#${index}@${bounds}`;
 }
