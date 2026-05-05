@@ -1237,7 +1237,10 @@ function elementFingerprint(
     el.getAttribute('uiElementId') ??
     el.getAttribute('title') ??
     el.tag;
-  const bounds = el.getAttribute('bounds') ?? '';
+  // Use absolute bounds (walks parent translations) so siblings with
+  // identical local bounds in different containers get different fingerprints.
+  const abs = getBounds(el as any);
+  const boundsStr = abs ? `{${abs.x},${abs.y},${abs.width},${abs.height}}` : '';
   const index = el.getAttribute('index') ?? '';
-  return `${ident}#${index}@${bounds}`;
+  return `${ident}#${index}@${boundsStr}`;
 }
