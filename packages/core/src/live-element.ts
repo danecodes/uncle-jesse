@@ -235,14 +235,17 @@ export class LiveElement {
         continue;
       }
 
-      // 3. Check if target is focused. Use fingerprint identity when
-      //    both elements have a stable ID (name/id/uiElementId). Fall
-      //    back to target.focused for elements without IDs.
+      // 3. Check if target is focused. Three cases:
+      //    a) Fingerprint match (target has stable id, active is the same element)
+      //    b) target.focused === true (target itself has the focused attr)
+      //    c) target is an ancestor of active (focus is on a descendant,
+      //       e.g. target is a container like PromoModule and active is
+      //       its info_button child -- the row IS focused)
       const targetFp = elementFingerprint(target);
       const activeFp = elementFingerprint(active);
       const targetHasStableId = target.id !== undefined;
       if (targetHasStableId && activeFp === targetFp) return;
-      if (!targetHasStableId && target.focused) return;
+      if (!targetHasStableId && (target.focused || isAncestorOf(target, active))) return;
 
       // 4. Cycle detection: track visited positions and which directions
       //    we've already tried from each position. Only track elements with
@@ -1182,6 +1185,35 @@ function getBounds(el: {
   }
 
   return { x, y, width: rect.width, height: rect.height };
+}
+
+/** Check if `ancestor` is an ancestor of `descendant` by comparing lineage paths. */
+function isAncestorOf(
+  ancestor: { tag: string; id?: string; parent?: any; getAttribute?(n: string): string | undefined },
+  descendant: { tag: string; id?: string; parent?: any; getAttribute?(n: string): string | undefined },
+): boolean {
+  // Build path for ancestor: [tag#id[idx], ...]
+  const ancestorPath = buildPath(ancestor);
+  // Walk up from descendant looking for a matching prefix
+  let cur = descendant.parent;
+  while (cur) {
+    const curPath = buildPath(cur);
+    if (curPath === ancestorPath) return true;
+    cur = cur.parent;
+  }
+  return false;
+}
+
+function buildPath(el: { tag: string; id?: string; parent?: any; getAttribute?(n: string): string | undefined }): string {
+  const parts: string[] = [];
+  let cur: typeof el | null = el;
+  while (cur) {
+    const ident = nodeIdent(cur);
+    const idx = indexInParent(cur as any);
+    parts.unshift(`${ident}[${idx}]`);
+    cur = cur.parent;
+  }
+  return parts.join('>');
 }
 
 function isAncestorOrDescendant(
