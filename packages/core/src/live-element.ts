@@ -153,7 +153,27 @@ export class LiveElement {
   async isDisplayed(): Promise<boolean> {
     const el = await this.resolve();
     if (!el) return false;
-    return el.getAttribute('visible') !== 'false';
+
+    // Check element itself
+    if (el.getAttribute('visible') === 'false') return false;
+    if (el.getAttribute('opacity') === '0') return false;
+
+    // Walk ancestors for inherited visibility
+    let ancestor = el.parent;
+    while (ancestor) {
+      if (ancestor.getAttribute('visible') === 'false') return false;
+      if (ancestor.getAttribute('opacity') === '0') return false;
+      ancestor = ancestor.parent;
+    }
+
+    // Bounds check: zero-size or fully offscreen
+    const b = getBounds(el);
+    if (b) {
+      if (b.width <= 0 || b.height <= 0) return false;
+      if (b.x + b.width <= 0 || b.y + b.height <= 0) return false;
+    }
+
+    return true;
   }
 
   async isFocused(): Promise<boolean> {
