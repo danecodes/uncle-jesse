@@ -1223,24 +1223,44 @@ function matchesIdentity(
   return true;
 }
 
-/** Build a string fingerprint that uniquely identifies an element, even anonymous grid items. */
+/** Compact identity for a single node: tag#id or just tag. */
+function nodeIdent(el: { tag: string; id?: string; getAttribute?(n: string): string | undefined } | null | undefined): string {
+  if (!el) return '';
+  const ga = typeof el.getAttribute === 'function' ? el.getAttribute.bind(el) : () => undefined;
+  const id = ga('name') ?? el.id ?? ga('id') ?? ga('uiElementId') ?? ga('title');
+  return id ? `${el.tag}#${id}` : el.tag;
+}
+
+/** Index of a node among its parent's children (-1 if unknown). */
+function indexInParent(el: { parent?: { children?: unknown[] } | null }): number {
+  if (!el.parent?.children) return -1;
+  return (el.parent.children as unknown[]).indexOf(el);
+}
+
+/**
+ * Build a fingerprint that distinguishes siblings even when they share
+ * the same id/name and land at the same absolute screen position (e.g.
+ * vertically-scrolling lists where the focused row is always anchored
+ * to the same viewport Y). Includes ancestor lineage with indices so
+ * two CollectionModule[0].LinearCard and CollectionModule[1].LinearCard
+ * produce different fingerprints.
+ */
 function elementFingerprint(
-  el: { tag: string; id?: string; getAttribute(n: string): string | undefined } | null | undefined,
+  el: { tag: string; id?: string; parent?: any; getAttribute(n: string): string | undefined } | null | undefined,
 ): string | undefined {
   if (!el) return undefined;
-  // Always include bounds and index so siblings sharing the same
-  // id/name (e.g. play_button in adjacent CollectionModules) produce
-  // different fingerprints when they're at different positions.
-  const ident =
-    el.getAttribute('name') ??
-    el.id ?? el.getAttribute('id') ??
-    el.getAttribute('uiElementId') ??
-    el.getAttribute('title') ??
-    el.tag;
-  // Use absolute bounds (walks parent translations) so siblings with
-  // identical local bounds in different containers get different fingerprints.
-  const abs = getBounds(el as any);
-  const boundsStr = abs ? `{${abs.x},${abs.y},${abs.width},${abs.height}}` : '';
-  const index = el.getAttribute('index') ?? '';
-  return `${ident}#${index}@${boundsStr}`;
+  const self = nodeIdent(el);
+
+  // Walk up to 4 ancestors, recording tag#id[index] at each level.
+  const ancestors: string[] = [];
+  let cur = el.parent;
+  for (let depth = 0; cur && depth < 4; depth++) {
+    const idx = indexInParent(cur);
+    ancestors.unshift(`${nodeIdent(cur)}[${idx}]`);
+    cur = cur.parent;
+  }
+
+  const lineage = ancestors.length > 0 ? ancestors.join('>') + '>' : '';
+  const selfIdx = indexInParent(el as any);
+  return `${lineage}${self}[${selfIdx}]`;
 }
