@@ -391,15 +391,66 @@ export class RokuAdapter implements TVDevice {
   }
 
   async getFocusedElement(): Promise<UIElement | null> {
-    // Roku marks focused="true" on items in every row, not just the
-    // active one. Walk down the focus chain from root, always picking
-    // the first focused child at each level. When no direct child is
-    // focused (e.g. PosterGrid doesn't get the attr), search all
-    // descendants of each child for focused nodes and follow that branch.
+    // Convert full tree to UIElements first so the returned node has
+    // its complete parent chain. Then walk the UIElement tree to find
+    // the focus leaf. This ensures elementFingerprint can build a
+    // lineage-based fingerprint for cycle detection.
     const raw = await this.getRawUITree();
-    const leaf = this.findFocusLeaf(raw);
-    if (!leaf) return null;
-    return this.uiNodeToElement(leaf);
+    const tree = this.uiNodeToElement(raw);
+    return this.findFocusLeafElement(tree);
+  }
+
+  private findFocusLeafElement(node: UIElement): UIElement | null {
+    const focusedChildren = node.children.filter(
+      (c) => c.getAttribute('focused') === 'true',
+    );
+
+    if (focusedChildren.length > 1) {
+      const pick = this.pickFocusedBranchElement(focusedChildren);
+      return this.findFocusLeafElement(pick) ?? pick;
+    }
+
+    if (focusedChildren.length === 1) {
+      return this.findFocusLeafElement(focusedChildren[0]) ?? focusedChildren[0];
+    }
+
+    // No direct focused child -- check descendants (e.g. PosterGrid)
+    const branchesWithFocus = node.children.filter((c) => this.hasFocusedDescendantElement(c));
+    if (branchesWithFocus.length > 1) {
+      const pick = this.pickFocusedBranchElement(branchesWithFocus);
+      return this.findFocusLeafElement(pick);
+    }
+    if (branchesWithFocus.length === 1) {
+      return this.findFocusLeafElement(branchesWithFocus[0]);
+    }
+
+    return null;
+  }
+
+  private pickFocusedBranchElement(candidates: UIElement[]): UIElement {
+    const visible = candidates.filter((c) =>
+      c.getAttribute('visible') !== 'false' && c.getAttribute('opacity') !== '0',
+    );
+    const pool = visible.length > 0 ? visible : candidates;
+
+    if (pool.length > 1) {
+      const modal = pool.find((c) => {
+        const tag = c.tag.toLowerCase();
+        const ext = (c.getAttribute('extends') ?? '').toLowerCase();
+        return RokuAdapter.MODAL_TAGS.some((m) => tag.includes(m) || ext.includes(m));
+      });
+      if (modal) return modal;
+    }
+
+    return pool[pool.length - 1];
+  }
+
+  private hasFocusedDescendantElement(node: UIElement): boolean {
+    for (const child of node.children) {
+      if (child.getAttribute('focused') === 'true') return true;
+      if (this.hasFocusedDescendantElement(child)) return true;
+    }
+    return false;
   }
 
   private static readonly MODAL_TAGS = ['dialog', 'overlay', 'modal', 'scrim', 'keyboard'];
