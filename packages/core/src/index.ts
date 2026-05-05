@@ -10,7 +10,6 @@ export { Direction, RemoteKey } from './types.js';
 export type { Direction as DirectionType, RemoteKey as RemoteKeyType } from './types.js';
 export { UIElement, setDefaultQueryEngine } from './ui-element.js';
 export type { ElementQueryEngine } from './ui-element.js';
-export { SelectorEngine } from './selector-engine.js';
 export { LiveElement, ElementCollection, TypedElementCollection, BaseComponent, BasePage } from './live-element.js';
 export type { Rect } from './live-element.js';
 export { defineConfig, loadConfig, loadConfigFromFile } from './config.js';
@@ -23,8 +22,3 @@ export {
   DeviceConnectionError,
   ECPError,
 } from './errors.js';
-
-// Initialize the default query engine so UIElement.$() works out of the box
-import { SelectorEngine } from './selector-engine.js';
-import { setDefaultQueryEngine } from './ui-element.js';
-setDefaultQueryEngine(new SelectorEngine());

@@ -1,9 +1,25 @@
 import { describe, it, expect } from 'vitest';
-import { UIElement, setDefaultQueryEngine, SelectorEngine } from '@danecodes/uncle-jesse-core';
+import { UIElement, setDefaultQueryEngine } from '@danecodes/uncle-jesse-core';
 import { ReplayRecorder } from '../src/replay/recorder.js';
 import { generateReplayHtml } from '../src/replay/viewer.js';
 
-setDefaultQueryEngine(new SelectorEngine());
+function flat(r: UIElement): UIElement[] {
+  const res: UIElement[] = [r];
+  for (const c of r.children) res.push(...flat(c));
+  return res;
+}
+setDefaultQueryEngine({
+  query(root, sel) {
+    const all = flat(root);
+    if (sel.startsWith('#')) return all.find(e => e.id === sel.slice(1)) ?? null;
+    return all.find(e => e.tag === sel) ?? null;
+  },
+  queryAll(root, sel) {
+    const all = flat(root);
+    if (sel.startsWith('#')) return all.filter(e => e.id === sel.slice(1));
+    return all.filter(e => e.tag === sel);
+  },
+});
 
 function makeTree(): UIElement {
   const child1 = new UIElement('Button', { name: 'btn1', focused: 'true' }, [], null);

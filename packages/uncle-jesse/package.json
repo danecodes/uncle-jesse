@@ -1,6 +1,6 @@
 {
   "name": "uncle-jesse",
-  "version": "2.3.11",
+  "version": "3.0.0",
   "type": "module",
   "bin": {
     "uncle-jesse": "./bin/uncle-jesse.js"
@@ -26,7 +26,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@danecodes/roku-ecp": "^0.8.0",
+    "@danecodes/roku-ecp": "^0.9.0",
     "@danecodes/uncle-jesse-core": "workspace:^",
     "@danecodes/uncle-jesse-roku": "workspace:^",
     "@danecodes/uncle-jesse-test": "workspace:^",

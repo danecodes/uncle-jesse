@@ -131,18 +131,13 @@ export class RokuAdapter implements TVDevice {
       await this.client.queryDeviceInfo();
       this.connected = true;
 
-      // Override core's default SelectorEngine with roku-ecp's selector engine
-      // which supports :has(), [attr*=], *, comma groups, and all CSS patterns
+      // Set roku-ecp's selector engine as the default query engine.
+      // Since 0.9.0, findElement/findElements accept any SelectorNode
+      // (which UIElement satisfies), so no round-trip conversion needed.
+      // Parents are preserved on results.
       setDefaultQueryEngine({
-        query: (root, selector) => {
-          const raw = this.elementToUiNode(root);
-          const found = findElement(raw, selector);
-          return found ? this.uiNodeToElement(found) : null;
-        },
-        queryAll: (root, selector) => {
-          const raw = this.elementToUiNode(root);
-          return findElements(raw, selector).map((n) => this.uiNodeToElement(n));
-        },
+        query: (root, selector) => findElement(root, selector) ?? null,
+        queryAll: (root, selector) => findElements(root, selector),
       });
       // Auto-connect ODC if configured
       if (this._odcOptions && !this._odc) {
@@ -356,48 +351,23 @@ export class RokuAdapter implements TVDevice {
     return element;
   }
 
-  private elementToUiNode(el: UIElement, parent?: UiNode): UiNode {
-    const attrs = { ...el.attributes };
-    const name = attrs['name'];
-    // Keep name in attrs so scoped #id queries work when round-tripping
-    // through elementToUiNode -> findElement. The ECP selector engine
-    // checks node.attrs.name for #id matching.
-    const node: UiNode = {
-      tag: el.tag,
-      name,
-      attrs,
-      children: [],
-      parent,
-    };
-    node.children = el.children.map((c) => this.elementToUiNode(c, node));
-    return node;
-  }
-
   async getUITree(): Promise<UIElement> {
     const raw = await this.getRawUITree();
     return this.uiNodeToElement(raw);
   }
 
   async $(selector: string): Promise<UIElement | null> {
-    // Convert full tree to UIElements (preserving parent chain), then
-    // query within the converted tree so results have proper parents
-    // for getBounds() ancestor walking and fingerprinting.
     const tree = await this.getUITree();
-    return tree.$(selector);
+    return findElement(tree, selector) ?? null;
   }
 
   async $$(selector: string): Promise<UIElement[]> {
     const tree = await this.getUITree();
-    return tree.$$(selector);
+    return findElements(tree, selector);
   }
 
   async getFocusedElement(): Promise<UIElement | null> {
-    // Convert full tree to UIElements first so the returned node has
-    // its complete parent chain. Then walk the UIElement tree to find
-    // the focus leaf. This ensures elementFingerprint can build a
-    // lineage-based fingerprint for cycle detection.
-    const raw = await this.getRawUITree();
-    const tree = this.uiNodeToElement(raw);
+    const tree = await this.getUITree();
     return this.findFocusLeafElement(tree);
   }
 
@@ -526,16 +496,13 @@ export class RokuAdapter implements TVDevice {
   }
 
   async waitForElement(selector: string, options?: WaitOptions): Promise<UIElement> {
-    // Use ECP polling, then re-resolve from full tree for proper parent chain
-    await ecpWaitForElement(this.getTreeSource, selector, options);
-    const tree = await this.getUITree();
-    return tree.$(selector)!;
+    const getTree = async () => this.getUITree();
+    return ecpWaitForElement(getTree, selector, options);
   }
 
   async waitForFocus(selector: string, options?: WaitOptions): Promise<UIElement> {
-    await ecpWaitForFocus(this.getTreeSource, selector, options);
-    const tree = await this.getUITree();
-    return tree.$(selector)!;
+    const getTree = async () => this.getUITree();
+    return ecpWaitForFocus(getTree, selector, options);
   }
 
   async waitForCondition<T>(predicate: () => Promise<T | null | false>, options?: WaitOptions): Promise<T> {
@@ -976,8 +943,8 @@ export class RokuAdapter implements TVDevice {
 
   /** Wait until an element's text contains the given string. */
   async waitForText(selector: string, text: string, options?: WaitOptions): Promise<UIElement> {
-    const node = await waitForText(this.getTreeSource, selector, text, options);
-    return this.uiNodeToElement(node);
+    const getTree = async () => this.getUITree();
+    return waitForText(getTree, selector, text, options);
   }
 
   /** Get CPU and memory performance metrics. */

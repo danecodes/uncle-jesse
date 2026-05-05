@@ -69,14 +69,15 @@ export class LiveElement {
     const el = await this.resolve();
     if (!el) return null;
     let ancestor = el.parent;
-    const engine = await import('./selector-engine.js').then(m => new m.SelectorEngine());
     while (ancestor) {
-      const fakeRoot = ancestor;
-      const match = engine.query(fakeRoot, selector);
-      if (match === fakeRoot) {
-        const id = fakeRoot.id;
+      // Simple match: tag name or #id
+      const matches = selector.startsWith('#')
+        ? ancestor.id === selector.slice(1)
+        : ancestor.tag.toLowerCase() === selector.toLowerCase();
+      if (matches) {
+        const id = ancestor.id;
         if (id) return new LiveElement(this.device, `#${id}`);
-        return new LiveElement(this.device, fakeRoot.tag);
+        return new LiveElement(this.device, ancestor.tag);
       }
       ancestor = ancestor.parent;
     }

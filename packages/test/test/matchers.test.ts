@@ -1,8 +1,24 @@
 import { describe, it, expect } from 'vitest';
-import { UIElement, setDefaultQueryEngine, SelectorEngine } from '@danecodes/uncle-jesse-core';
+import { UIElement, setDefaultQueryEngine } from '@danecodes/uncle-jesse-core';
 import { tvMatchers } from '../src/matchers.js';
 
-setDefaultQueryEngine(new SelectorEngine());
+function flat(r: UIElement): UIElement[] {
+  const res: UIElement[] = [r];
+  for (const c of r.children) res.push(...flat(c));
+  return res;
+}
+setDefaultQueryEngine({
+  query(root, sel) {
+    const all = flat(root);
+    if (sel.startsWith('#')) return all.find(e => e.id === sel.slice(1)) ?? null;
+    return all.find(e => e.tag === sel) ?? null;
+  },
+  queryAll(root, sel) {
+    const all = flat(root);
+    if (sel.startsWith('#')) return all.filter(e => e.id === sel.slice(1));
+    return all.filter(e => e.tag === sel);
+  },
+});
 expect.extend(tvMatchers);
 
 // Augment vitest types for our matchers

@@ -1,8 +1,27 @@
 import { describe, it, expect } from 'vitest';
 import { UIElement, setDefaultQueryEngine } from '../src/ui-element.js';
-import { SelectorEngine } from '../src/selector-engine.js';
 
-setDefaultQueryEngine(new SelectorEngine());
+// Minimal query engine for core tests (production uses roku-ecp's engine)
+setDefaultQueryEngine({
+  query(root, selector) {
+    return this.queryAll(root, selector)[0] ?? null;
+  },
+  queryAll(root, selector) {
+    const all = flatten(root);
+    // Simple tag or #id matching for tests
+    if (selector.startsWith('#')) {
+      const id = selector.slice(1);
+      return all.filter((el) => el.id === id);
+    }
+    return all.filter((el) => el.tag === selector);
+  },
+});
+
+function flatten(root: UIElement): UIElement[] {
+  const result: UIElement[] = [root];
+  for (const child of root.children) result.push(...flatten(child));
+  return result;
+}
 
 function el(
   tag: string,
