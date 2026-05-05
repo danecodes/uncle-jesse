@@ -1,16 +1,23 @@
 import type { Plugin } from 'vitest/config';
+import type { RokuSessionOptions } from './roku-session.js';
 
 export interface UncleJessePluginOptions {
+  /** Session factory called per-test. Receives the Vitest TestContext. */
+  sessionFactory?: (ctx: any) => RokuSessionOptions;
+
+  /** Additional setup files to inject. */
   setupFile?: string;
-  screenshotOnFailure?: boolean;
-  logCapture?: boolean;
-  artifactDir?: string;
-  logDir?: string;
-  onTestStart?: (device: unknown, ctx: unknown) => Promise<void>;
-  onTestFinished?: (device: unknown, result: unknown, ctx: unknown) => Promise<void>;
+
+  /** Enable code-frame source highlighting on assertion failures. Default true. */
+  codeFrame?: boolean;
+
+  /** Tag expression env var name. Default 'TAGS'. */
+  tagsEnvVar?: string;
+
+  /** Explicit tag expression (overrides env var). */
+  tagExpression?: string;
 }
 
-// Store config so the fixture can read it
 let _pluginConfig: UncleJessePluginOptions = {};
 
 export function getPluginConfig(): UncleJessePluginOptions {
@@ -18,20 +25,13 @@ export function getPluginConfig(): UncleJessePluginOptions {
 }
 
 export function uncleJessePlugin(options?: UncleJessePluginOptions): Plugin {
-  _pluginConfig = {
-    screenshotOnFailure: true,
-    logCapture: false,
-    artifactDir: './test-results',
-    logDir: './test-logs',
-    ...options,
-  };
+  _pluginConfig = { codeFrame: true, tagsEnvVar: 'TAGS', ...options };
 
   return {
     name: 'uncle-jesse',
     config() {
-      const setupFiles = options?.setupFile
-        ? [options.setupFile]
-        : [];
+      const setupFiles: string[] = [];
+      if (options?.setupFile) setupFiles.push(options.setupFile);
 
       return {
         test: {

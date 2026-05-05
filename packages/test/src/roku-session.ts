@@ -27,6 +27,9 @@ export interface RokuSessionOptions {
   /** User-supplied app factory. Called with the device after launch. */
   appFactory?: (device: TVDevice) => any;
 
+  /** Press Home before launching to force a fresh main() execution. Default true. */
+  coldBoot?: boolean;
+
   /** Lifecycle hooks. */
   hooks?: {
     beforeLaunch?: (device: TVDevice) => Promise<void>;
@@ -152,6 +155,12 @@ export class RokuTestSession<TApp = unknown> implements RokuSession<TApp> {
     if (options.artifacts?.captureLog && typeof device.startLogCapture === 'function') {
       await device.startLogCapture();
       stopLogCapture = () => device.stopLogCapture();
+    }
+
+    // Cold boot: press Home to kill any existing channel so launchApp
+    // forces a fresh main() execution with the new launchArgs.
+    if (options.coldBoot !== false) {
+      await device.home();
     }
 
     // beforeLaunch hook

@@ -3,7 +3,6 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { TVDevice } from '@danecodes/uncle-jesse-core';
 import { tvMatchers } from './matchers.js';
-import { getPluginConfig } from './vitest-plugin.js';
 
 // Track the current test name for artifact naming
 let _currentTestName = 'unknown';
@@ -52,11 +51,10 @@ function slugify(name: string): string {
 export const test = baseTest.extend<TVFixtures>({
   // eslint-disable-next-line no-empty-pattern
   tv: async ({}, use) => {
-    const pluginConfig = getPluginConfig();
-    const screenshotEnabled = pluginConfig.screenshotOnFailure ?? _screenshotOnFailure;
-    const screenshotPath = pluginConfig.artifactDir ?? _screenshotDir;
-    const logEnabled = pluginConfig.logCapture ?? _logCapture;
-    const logPath = pluginConfig.logDir ?? _logDir;
+    const screenshotEnabled = _screenshotOnFailure;
+    const screenshotPath = _screenshotDir;
+    const logEnabled = _logCapture;
+    const logPath = _logDir;
 
     if (!_deviceFactory) {
       throw new Error(
@@ -72,7 +70,7 @@ export const test = baseTest.extend<TVFixtures>({
       await rokuDevice.startLogCapture();
     }
 
-    const startHook = (pluginConfig.onTestStart as typeof _onTestStart) ?? _onTestStart;
+    const startHook = _onTestStart;
     if (startHook) {
       await startHook(device, null);
     }
@@ -104,7 +102,7 @@ export const test = baseTest.extend<TVFixtures>({
         }
       }
 
-      const finishHook = (pluginConfig.onTestFinished as typeof _onTestFinished) ?? _onTestFinished;
+      const finishHook = _onTestFinished;
       if (finishHook) {
         await finishHook(device, result, null);
       }

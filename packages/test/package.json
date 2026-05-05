@@ -1,6 +1,6 @@
 {
   "name": "@danecodes/uncle-jesse-test",
-  "version": "3.0.1",
+  "version": "3.1.0",
   "type": "module",
   "exports": {
     ".": {
@@ -22,6 +22,16 @@
       "types": "./dist/roku-session.d.ts",
       "import": "./dist/roku-session.js",
       "require": "./dist/roku-session.cjs"
+    },
+    "./vitest": {
+      "types": "./dist/vitest-fixtures.d.ts",
+      "import": "./dist/vitest-fixtures.js",
+      "require": "./dist/vitest-fixtures.cjs"
+    },
+    "./tags": {
+      "types": "./dist/tag-filter.d.ts",
+      "import": "./dist/tag-filter.js",
+      "require": "./dist/tag-filter.cjs"
     }
   },
   "main": "./dist/index.cjs",
