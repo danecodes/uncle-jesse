@@ -19,10 +19,12 @@ import {
   type DeviceEvent,
   type DeviceEventHandler,
   type Logger,
+  type FocusByKeysOptions,
   UIElement,
   setDefaultQueryEngine,
   DeviceConnectionError,
   TimeoutError,
+  focusByKeys,
 } from '@danecodes/uncle-jesse-core';
 import { RokuKeyMap } from './roku-key-map.js';
 
@@ -369,6 +371,10 @@ export class RokuAdapter implements TVDevice {
   async getFocusedElement(): Promise<UIElement | null> {
     const tree = await this.getUITree();
     return this.findFocusLeafElement(tree);
+  }
+
+  async focusByKeys(targetId: string | string[], options: FocusByKeysOptions): Promise<void> {
+    await focusByKeys(this, targetId, options);
   }
 
   private findFocusLeafElement(node: UIElement): UIElement | null {

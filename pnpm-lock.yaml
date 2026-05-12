@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@danecodes/roku-ecp':
-        specifier: 0.6.4
-        version: 0.6.4
+        specifier: ^0.9.0
+        version: 0.9.0
       ctrf:
         specifier: 0.2.0
         version: 0.2.0
@@ -210,10 +210,6 @@ packages:
 
   '@changesets/write@0.4.0':
     resolution: {integrity: sha512-CdTLvIOPiCNuH71pyDu3rA+Q0n65cmAbXnwWH84rKGiFumFzkmHNT8KHTMEchcxN+Kl8I54xGUhJ7l3E7X396Q==}
-
-  '@danecodes/roku-ecp@0.6.4':
-    resolution: {integrity: sha512-CyE/mGIuicnorb2BggrhvOiwCNGq7BHn4AY9ENd9e65b3B4fUo/Oxx/iZzJz6Ips3GcuwDgIfWIcCRGicSfTCQ==}
-    engines: {node: '>=22'}
 
   '@danecodes/roku-ecp@0.7.4':
     resolution: {integrity: sha512-UzYmyKRUQigsdXlasJ2XmxRMzmJyK6Djqnm+yzo+6nPGy0Fls/EG+VVZsVJ7ODexJ4Z00kpZ/zWor9RTyamV4Q==}
@@ -1843,12 +1839,6 @@ snapshots:
       fs-extra: 7.0.1
       human-id: 4.1.3
       prettier: 2.8.8
-
-  '@danecodes/roku-ecp@0.6.4':
-    dependencies:
-      '@danecodes/roku-log': 0.1.0
-      fast-xml-parser: 5.5.11
-      yazl: 3.3.1
 
   '@danecodes/roku-ecp@0.7.4':
     dependencies:

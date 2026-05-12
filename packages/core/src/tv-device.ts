@@ -1,5 +1,6 @@
 import type { Platform, RemoteKey, Direction, WaitOptions, AppInfo } from './types.js';
 import type { UIElement } from './ui-element.js';
+import type { FocusByKeysOptions } from './focus-by-keys.js';
 
 export interface Logger {
   info(message: string, meta?: Record<string, unknown>): void;
@@ -61,6 +62,14 @@ export interface TVDevice {
   $(selector: string): Promise<UIElement | null>;
   $$(selector: string): Promise<UIElement[]>;
   getFocusedElement(): Promise<UIElement | null>;
+  /**
+   * Drive a fixed key sequence until the focused element's id matches
+   * `targetId`. Bypasses geometric navigation — use when the caller knows
+   * the route and the geometric walker can't be relied on (e.g. escaping
+   * a horizontal container into a sibling vertical group, or when two
+   * candidate directions oscillate). See `focusByKeys` in core.
+   */
+  focusByKeys(targetId: string | string[], options: FocusByKeysOptions): Promise<void>;
   waitForElement(selector: string, options?: WaitOptions): Promise<UIElement>;
   waitForFocus(selector: string, options?: WaitOptions): Promise<UIElement>;
   waitForCondition<T>(predicate: () => Promise<T | null | false>, options?: WaitOptions): Promise<T>;

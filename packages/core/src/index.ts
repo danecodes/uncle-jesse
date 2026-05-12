@@ -17,6 +17,8 @@ export { RegistryState } from './registry.js';
 export type { RegistryData, OdcClient } from './registry.js';
 export { DevicePool } from './device-pool.js';
 export type { DevicePoolOptions } from './device-pool.js';
+export { focusByKeys } from './focus-by-keys.js';
+export type { FocusByKeysOptions } from './focus-by-keys.js';
 export {
   TimeoutError,
   DeviceConnectionError,

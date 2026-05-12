@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RokuAdapter } from '../src/roku-adapter.js';
-import { DeviceConnectionError } from '@danecodes/uncle-jesse-core';
+import { DeviceConnectionError, UIElement } from '@danecodes/uncle-jesse-core';
 
 const mockClient = {
   queryDeviceInfo: vi.fn(),
@@ -102,6 +102,20 @@ describe('RokuAdapter', () => {
 
       await adapter.navigate('down', 3);
       expect(mock.press).toHaveBeenCalledWith('Down', { times: 3, delay: 150 });
+    });
+  });
+
+  describe('focusByKeys', () => {
+    it('drives caller-provided keys through the adapter', async () => {
+      vi.spyOn(adapter, 'getFocusedElement')
+        .mockResolvedValueOnce(new UIElement('Node', { name: 'start', bounds: '{0, 0, 10, 10}' }))
+        .mockResolvedValueOnce(new UIElement('Node', { name: 'start', bounds: '{0, 0, 10, 10}' }))
+        .mockResolvedValueOnce(new UIElement('Node', { name: 'target', bounds: '{10, 0, 10, 10}' }));
+      const press = vi.spyOn(adapter, 'press').mockResolvedValue(undefined);
+
+      await adapter.focusByKeys('target', { keys: ['right'], maxPressesPerKey: 1 });
+
+      expect(press).toHaveBeenCalledWith('right');
     });
   });
 

@@ -10,6 +10,18 @@ Your tests run in Node and talk to the Roku ECP API on port 8060. No Appium, no 
 npm install @danecodes/uncle-jesse-core @danecodes/uncle-jesse-roku @danecodes/uncle-jesse-test
 ```
 
+## Development
+
+Use the root Turbo scripts when validating the workspace:
+
+```bash
+pnpm build
+pnpm test
+pnpm typecheck
+```
+
+Package entry points resolve workspace dependencies through their built `dist` exports, so direct recursive commands like `pnpm -r test` or `pnpm -r typecheck` can fail in a clean checkout before dependency packages have been built.
+
 ## Quick Start
 
 ```typescript
