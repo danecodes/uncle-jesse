@@ -1,45 +1,59 @@
 import { test } from '@danecodes/uncle-jesse-test';
 import { expect } from 'vitest';
 
-test('app launches and shows grid screen', async ({ tv }) => {
+async function launchHome(tv: any) {
+  await tv.closeApp();
+  await tv.home();
   await tv.launchApp('dev');
+  await tv.waitForElement('HomeScreen RowList#contentGrid');
+}
 
-  // Wait for the grid to appear
-  const grid = await tv.waitForElement('RowList');
+test('app launches and shows home grid', async ({ tv }) => {
+  await launchHome(tv);
+
+  const grid = await tv.waitForElement('HomeScreen RowList#contentGrid');
   expect(grid).toExist();
 });
 
 test('grid screen has focused element', async ({ tv }) => {
+  await launchHome(tv);
+
   const focused = await tv.getFocusedElement();
   expect(focused).toExist();
   expect(focused).toBeFocused();
+  expect(focused?.getAttribute('title')).toBe('featured-item-1');
 });
 
 test('can navigate grid with D-pad', async ({ tv }) => {
+  await launchHome(tv);
+
   await tv.press('right');
   const focused = await tv.getFocusedElement();
   expect(focused).toBeFocused();
+  expect(focused?.getAttribute('title')).toBe('featured-item-2');
 });
 
 test('selecting grid item shows details screen', async ({ tv }) => {
+  await launchHome(tv);
   await tv.select();
 
-  // DetailsScreen gets focused when shown (GridScreen gets visible="false",
-  // but DetailsScreen's visible attr is absent when true — Roku default)
-  const details = await tv.waitForElement('DetailsScreen[focused="true"]');
+  const details = await tv.waitForElement('DetailsScreen');
   expect(details).toExist();
+  expect(details.getAttribute('visible')).not.toBe('false');
 
-  // Buttons should exist
-  const buttons = await tv.waitForElement('LabelList#Buttons');
+  const buttons = await tv.waitForElement('DetailsScreen LabelList#actionButtons');
   expect(buttons).toExist();
 });
 
-test('back from details returns to grid', async ({ tv }) => {
+test('back from details returns to home grid', async ({ tv }) => {
+  await launchHome(tv);
+  await tv.select();
+  await tv.waitForElement('DetailsScreen LabelList#actionButtons');
+
   await tv.back();
 
-  // GridScreen regains focus when returning from details
-  const grid = await tv.waitForElement('GridScreen');
+  const grid = await tv.waitForElement('HomeScreen RowList#contentGrid');
   expect(grid).toExist();
-  // GridScreen should no longer have visible="false"
-  expect(grid.getAttribute('visible')).not.toBe('false');
+  const focused = await tv.getFocusedElement();
+  expect(focused?.getAttribute('title')).toBe('featured-item-1');
 });

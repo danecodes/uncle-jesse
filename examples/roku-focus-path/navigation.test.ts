@@ -1,44 +1,43 @@
 import { test, focusPath } from '@danecodes/uncle-jesse-test';
 import { expect } from 'vitest';
 
-test('grid row navigation', async ({ tv }) => {
+async function launchHome(tv: any) {
+  await tv.closeApp();
+  await tv.home();
   await tv.launchApp('dev');
-  await tv.waitForElement('RowList');
+  await tv.waitForElement('HomeScreen RowList#contentGrid');
+}
 
-  // Verify we can get the focused element
+test('grid row navigation', async ({ tv }) => {
+  await launchHome(tv);
+
   const focused = await tv.getFocusedElement();
   expect(focused).toExist();
   expect(focused).toBeFocused();
+  expect(focused?.getAttribute('title')).toBe('featured-item-1');
 });
 
 test('grid to details and back', async ({ tv }) => {
-  await tv.launchApp('dev');
-  await tv.waitForElement('RowList');
+  await launchHome(tv);
 
-  // Select an item to go to details
   await tv.select();
 
-  const details = await tv.waitForElement('DetailsScreen[focused="true"]');
+  const details = await tv.waitForElement('DetailsScreen');
   expect(details).toExist();
 
-  // Navigate the details screen buttons
-  const buttons = await tv.$('LabelList#Buttons');
+  const buttons = await tv.$('LabelList#actionButtons');
   expect(buttons).toExist();
 
-  // Back to grid
   await tv.back();
-  const grid = await tv.$('GridScreen');
+  const grid = await tv.$('HomeScreen RowList#contentGrid');
   expect(grid).toExist();
-  expect(grid?.getAttribute('visible')).not.toBe('false');
+  const focused = await tv.getFocusedElement();
+  expect(focused?.getAttribute('title')).toBe('featured-item-1');
 });
 
 test('focus path failure reporting', async ({ tv }) => {
-  await tv.launchApp('dev');
-  await tv.waitForElement('RowList');
+  await launchHome(tv);
 
-  // Demonstrate focusPath error reporting.
-  // Pressing right moves focus to a different grid item,
-  // but we intentionally expect a wrong element to show the error format.
   const result = await focusPath(tv)
     .press('right').expectFocus('#nonExistent')
     .verify();

@@ -1,17 +1,17 @@
 import { TVPage } from '@danecodes/uncle-jesse-test';
 
-export class GridScreen extends TVPage {
+export class HomeScreen extends TVPage {
   async isVisible(): Promise<boolean> {
-    const el = await this.$('GridScreen');
+    const el = await this.$('HomeScreen');
     return el !== null && el.getAttribute('visible') !== 'false';
   }
 
   async waitForLoad(): Promise<void> {
-    await this.waitForElement('RowList');
+    await this.waitForElement('HomeScreen RowList#contentGrid');
   }
 
   async getRowList() {
-    return this.$('RowList');
+    return this.$('HomeScreen RowList#contentGrid');
   }
 
   async selectCurrentItem(): Promise<void> {

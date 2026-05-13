@@ -197,6 +197,8 @@ configureUncleJesse({
     channelId: 'dev',
     channelArtifact: { path: './roku-channel' },
     launchArgs: { testName },
+    // Registry seeding defaults to "auto": ODC first, launch params fallback.
+    registryMode: 'auto',
     artifacts: {
       baseDir: 'test-results',
       captureLog: true,
@@ -593,8 +595,8 @@ Working test suites in [`examples/`](./examples) that run against a bundled test
 
 - `roku-basic` - smoke tests: launch, navigate, select, back
 - `roku-focus-path` - focusPath with title-based selectors and replay recording
-- `roku-page-objects` - page object pattern with GridScreen and DetailsScreen
-- `roku-work-style` - full test suite using BasePage/BaseComponent (23 tests covering navigation, search, settings, deep linking, focusPath)
+- `roku-page-objects` - page object pattern with HomeScreen and DetailsScreen
+- `roku-work-style` - full test suite using BasePage/BaseComponent (navigation, search, settings, deep linking, focusPath)
 
 ## Docs
 

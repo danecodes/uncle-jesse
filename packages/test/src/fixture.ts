@@ -1,4 +1,4 @@
-import { test as baseTest, expect, onTestFailed, onTestFinished, type TestContext } from 'vitest';
+import { test as baseTest, expect, onTestFailed, onTestFinished } from 'vitest';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { TVDevice } from '@danecodes/uncle-jesse-core';
@@ -48,9 +48,8 @@ function slugify(name: string): string {
     .replace(/^-|-$/g, '');
 }
 
-export const test = baseTest.extend<TVFixtures>({
-  // eslint-disable-next-line no-empty-pattern
-  tv: async ({}, use) => {
+const tvFixture = withFixtureSignature(
+  async ({}: any, use: (device: TVDevice) => Promise<void>) => {
     const screenshotEnabled = _screenshotOnFailure;
     const screenshotPath = _screenshotDir;
     const logEnabled = _logCapture;
@@ -76,22 +75,38 @@ export const test = baseTest.extend<TVFixtures>({
     }
 
     const testSlug = slugify(_currentTestName);
+    let savedFailureScreenshot = false;
 
-    if (screenshotEnabled) {
-      onTestFailed(async () => {
-        try {
-          const screenshot = await device.screenshot();
-          await mkdir(screenshotPath, { recursive: true });
-          const path = join(screenshotPath, `${testSlug}-failure.png`);
-          await writeFile(path, screenshot);
-          console.log(`Failure screenshot: ${path}`);
-        } catch {
-          // don't mask the original test error
-        }
-      });
+    async function saveFailureScreenshot() {
+      if (!screenshotEnabled || savedFailureScreenshot) return;
+      savedFailureScreenshot = true;
+
+      try {
+        const screenshot = await device.screenshot();
+        await mkdir(screenshotPath, { recursive: true });
+        const path = join(screenshotPath, `${testSlug}-failure.png`);
+        await writeFile(path, screenshot);
+        console.log(`Failure screenshot: ${path}`);
+      } catch {
+        // don't mask the original test error
+      }
     }
 
+    onTestFailed(saveFailureScreenshot);
+
     onTestFinished(async (result) => {
+      const finishHook = _onTestFinished;
+      if (finishHook) {
+        await finishHook(device, result, null);
+      }
+    });
+
+    try {
+      await use(device);
+    } catch (err) {
+      await saveFailureScreenshot();
+      throw err;
+    } finally {
       if (logEnabled && typeof rokuDevice.logs !== 'undefined') {
         try {
           await mkdir(logPath, { recursive: true });
@@ -102,24 +117,28 @@ export const test = baseTest.extend<TVFixtures>({
         }
       }
 
-      const finishHook = _onTestFinished;
-      if (finishHook) {
-        await finishHook(device, result, null);
-      }
-
       if (logEnabled && typeof rokuDevice.stopLogCapture === 'function') {
         rokuDevice.stopLogCapture();
       }
-    });
 
-    await use(device);
-    await device.disconnect();
+      await device.disconnect();
+    }
   },
+  'async ({}, use) => {}',
+);
+
+export const test = baseTest.extend<TVFixtures>({
+  tv: tvFixture,
 });
 
 // Capture test name for artifact naming
-baseTest.beforeEach((context) => {
-  _currentTestName = context.task.name;
+baseTest.beforeEach(({ task }) => {
+  _currentTestName = task.name;
 });
 
 expect.extend(tvMatchers);
+
+function withFixtureSignature<T extends (...args: any[]) => any>(fn: T, signature: string): T {
+  Object.defineProperty(fn, 'toString', { value: () => signature });
+  return fn;
+}

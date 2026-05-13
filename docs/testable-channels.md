@@ -67,11 +67,11 @@ Built-in list components (RowList, LabelList, PosterGrid) render items as anonym
 
 ```brightscript
 item = createObject("RoSGNode", "ContentNode")
-item.title = "Action Movies Item 1"    ' becomes title="Action Movies Item 1"
-item.id = "action-1"                   ' becomes name="action-1" (queryable as #action-1)
+item.title = "featured-item-1"    ' becomes title="featured-item-1"
+item.id = "featured-1"            ' becomes name="featured-1" (queryable as #featured-1)
 ```
 
-This lets you write selectors like `[title="Action Movies Item 1"]` or `#action-1`.
+This lets you write selectors like `[title="featured-item-1"]` or `#featured-1`.
 
 For test data, add attributes that help humans read failures and replay output:
 

@@ -1,16 +1,20 @@
 import { test, focusPath } from '@danecodes/uncle-jesse-test';
 import { expect } from 'vitest';
 
-test('navigate through grid items by title', async ({ tv }) => {
+async function launchHome(tv: any) {
+  await tv.closeApp();
   await tv.home();
   await tv.launchApp('dev');
-  await tv.waitForElement('RowList');
+  await tv.waitForElement('HomeScreen RowList#contentGrid');
+}
 
-  // Navigate right through the first row, verifying focus by title
+test('navigate through grid items by title', async ({ tv }) => {
+  await launchHome(tv);
+
   const result = await focusPath(tv)
-    .press('right').expectFocus('[title="Action Movies Item 2"]')
-    .press('right').expectFocus('[title="Action Movies Item 3"]')
-    .press('right').expectFocus('[title="Action Movies Item 4"]')
+    .press('right').expectFocus('[title="featured-item-2"]')
+    .press('right').expectFocus('[title="featured-item-3"]')
+    .press('right').expectFocus('[title="featured-item-4"]')
     .verify();
 
   console.log('Failures:', result.failures.length);
@@ -22,13 +26,11 @@ test('navigate through grid items by title', async ({ tv }) => {
 });
 
 test('navigate down to second row', async ({ tv }) => {
-  await tv.home();
-  await tv.launchApp('dev');
-  await tv.waitForElement('RowList');
+  await launchHome(tv);
 
   const result = await focusPath(tv)
-    .press('down').expectFocus('[title="Comedy Shows Item 1"]')
-    .press('right').expectFocus('[title="Comedy Shows Item 2"]')
+    .press('down').expectFocus('[title="recent-item-1"]')
+    .press('right').expectFocus('[title="recent-item-2"]')
     .verify();
 
   console.log('Failures:', result.failures.length);
@@ -40,14 +42,11 @@ test('navigate down to second row', async ({ tv }) => {
 });
 
 test('collects all failures across a navigation sequence', async ({ tv }) => {
-  await tv.home();
-  await tv.launchApp('dev');
-  await tv.waitForElement('RowList');
+  await launchHome(tv);
 
-  // Intentionally wrong expectations to test failure collection
   const result = await focusPath(tv)
     .press('right').expectFocus('[title="WRONG ITEM"]')
-    .press('right').expectFocus('[title="Action Movies Item 3"]')
+    .press('right').expectFocus('[title="featured-item-3"]')
     .press('right').expectFocus('[title="ALSO WRONG"]')
     .verify();
 
@@ -61,14 +60,12 @@ test('collects all failures across a navigation sequence', async ({ tv }) => {
 });
 
 test('navigate grid with recording enabled', async ({ tv }) => {
-  await tv.home();
-  await tv.launchApp('dev');
-  await tv.waitForElement('RowList');
+  await launchHome(tv);
 
   const result = await focusPath(tv, { record: true, testName: 'grid-nav-replay' })
-    .press('right').expectFocus('[title="Action Movies Item 2"]')
-    .press('right').expectFocus('[title="Action Movies Item 3"]')
-    .press('down').expectFocus('[title="Comedy Shows Item 1"]')
+    .press('right').expectFocus('[title="featured-item-2"]')
+    .press('right').expectFocus('[title="featured-item-3"]')
+    .press('down').expectFocus('[title="recent-item-3"]')
     .verify();
 
   expect(result.replay).toBeDefined();

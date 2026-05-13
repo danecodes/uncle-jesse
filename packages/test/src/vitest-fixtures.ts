@@ -1,4 +1,4 @@
-import { test as base, onTestFinished } from 'vitest';
+import { test as base, onTestFailed } from 'vitest';
 import { RokuTestSession, type RokuSessionOptions } from './roku-session.js';
 import { patchErrorStack } from './code-frame.js';
 import { extractTags } from './tag-filter.js';
@@ -39,8 +39,8 @@ export interface UncleJesseFixtures {
   app: any;
 }
 
-export const test = base.extend<UncleJesseFixtures>({
-  session: async ({ task }: any, use: any) => {
+const sessionFixture = withFixtureSignature(
+  async ({ task }: any, use: any) => {
     if (!_sessionFactory) {
       throw new Error(
         'Uncle Jesse not configured. Call configureUncleJesse({ sessionFactory }) in your setup file.'
@@ -63,43 +63,67 @@ export const test = base.extend<UncleJesseFixtures>({
 
     const session = await RokuTestSession.create(opts);
 
-    // Register cleanup
-    onTestFinished(async (ctx: any) => {
-      const finishTask = ctx?.task ?? ctx;
-      const failed = finishTask?.result?.state === 'fail';
-      const testName = sanitizeName(finishTask?.name ?? 'unknown');
+    let failed = false;
+    let testError: unknown;
+
+    onTestFailed(() => {
+      failed = true;
+    });
+
+    try {
+      await use(session);
+    } catch (err) {
+      failed = true;
+      testError = err;
+      throw err;
+    } finally {
+      const testName = sanitizeName(task?.name ?? 'unknown');
 
       if (failed && (session as any)._artifacts?.screenshotOnFail !== false) {
         try {
           const path = await session.saveScreenshot(testName);
-          if (path) attachToTask(finishTask, 'screenshot', 'image/png', path);
+          if (path) attachToTask(task, 'screenshot', 'image/png', path);
         } catch { /* don't break teardown */ }
       }
 
       if ((session as any)._artifacts?.captureLog) {
         try {
           const path = await session.saveLog(testName);
-          if (path) attachToTask(finishTask, 'log', 'text/plain', path);
+          if (path) attachToTask(task, 'log', 'text/plain', path);
         } catch { /* don't break teardown */ }
       }
 
-      if (failed && finishTask?.result?.errors) {
-        for (const err of finishTask.result.errors) {
+      if (failed && task?.result?.errors) {
+        for (const err of task.result.errors) {
           if (err instanceof Error) patchErrorStack(err);
         }
       }
+      if (failed && testError instanceof Error) patchErrorStack(testError);
 
       await session.dispose();
-    });
-
-    await use(session);
+    }
   },
-  device: async ({ session }: any, use: any) => {
+  'async ({ task }, use) => {}',
+);
+
+const deviceFixture = withFixtureSignature(
+  async ({ session }: any, use: any) => {
     await use(session.device);
   },
-  app: async ({ session }: any, use: any) => {
+  'async ({ session }, use) => {}',
+);
+
+const appFixture = withFixtureSignature(
+  async ({ session }: any, use: any) => {
     await use(session.app);
   },
+  'async ({ session }, use) => {}',
+);
+
+export const test = base.extend<UncleJesseFixtures>({
+  session: sessionFixture,
+  device: deviceFixture,
+  app: appFixture,
 });
 
 export const it = test;
@@ -112,4 +136,13 @@ function attachToTask(task: any, name: string, contentType: string, path: string
   if (!task?.meta) return;
   if (!task.meta.attachments) task.meta.attachments = [];
   task.meta.attachments.push({ name, contentType, path });
+}
+
+function withFixtureSignature<T extends (...args: any[]) => any>(fn: T, signature: string): T {
+  // Vitest parses fixture dependencies from Function#toString(). Some bundler
+  // transforms preserve runtime semantics while rewriting destructured params
+  // to a single `context` argument, which breaks that parser. Pinning the
+  // parse-only signature keeps the public fixture usable from built packages.
+  Object.defineProperty(fn, 'toString', { value: () => signature });
+  return fn;
 }

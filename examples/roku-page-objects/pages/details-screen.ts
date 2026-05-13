@@ -2,16 +2,16 @@ import { TVPage } from '@danecodes/uncle-jesse-test';
 
 export class DetailsScreen extends TVPage {
   async isVisible(): Promise<boolean> {
-    const el = await this.$('DetailsScreen[focused="true"]');
-    return el !== null;
+    const el = await this.$('DetailsScreen');
+    return el !== null && el.getAttribute('visible') !== 'false';
   }
 
   async waitForLoad(): Promise<void> {
-    await this.waitForElement('DetailsScreen[focused="true"]');
+    await this.waitForElement('DetailsScreen LabelList#actionButtons');
   }
 
   async getButtons() {
-    return this.$('LabelList#Buttons');
+    return this.$('LabelList#actionButtons');
   }
 
   async getDescription() {

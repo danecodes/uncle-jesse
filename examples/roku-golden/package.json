@@ -6,6 +6,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@danecodes/roku-odc": "0.4.2",
     "@danecodes/uncle-jesse-core": "workspace:*",
     "@danecodes/uncle-jesse-roku": "workspace:*",
     "@danecodes/uncle-jesse-test": "workspace:*"

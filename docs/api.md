@@ -480,6 +480,9 @@ configureUncleJesse({
     registry: [
       new RegistryState().set('UNCLE_JESSE', 'testName', testName),
     ],
+    // Default is "auto": try ODC, then fall back to launch params if ODC is unavailable.
+    // Use "launchParams" for deterministic fallback testing, or "odc" to require ODC.
+    registryMode: 'auto',
     launchArgs: {
       testTags: tags.map((tag) => tag.name).join(','),
     },

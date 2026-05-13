@@ -6,5 +6,7 @@ export default defineConfig({
     setupFiles: [path.resolve(import.meta.dirname, 'setup.ts')],
     include: [path.resolve(import.meta.dirname, '*.test.ts')],
     testTimeout: 30000,
+    fileParallelism: false,
+    sequence: { concurrent: false },
   },
 });

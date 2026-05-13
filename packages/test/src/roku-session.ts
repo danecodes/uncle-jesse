@@ -13,6 +13,8 @@ export interface RokuSessionOptions {
 
   /** Registry state helpers to compose before launch. Written via ODC. */
   registry?: RegistryState[];
+  /** Registry seeding transport. Default auto tries ODC, then launch params. */
+  registryMode?: 'auto' | 'odc' | 'launchParams';
 
   /** Extra launch params (feature flags, overrides, etc). */
   launchArgs?: Record<string, string>;
@@ -141,13 +143,21 @@ export class RokuTestSession<TApp = unknown> implements RokuSession<TApp> {
     // Write registry via ODC if available, otherwise fall back to launch params
     const launchParams: Record<string, string> = { ...options.launchArgs };
     if (registryData) {
-      if (device.hasOdc) {
-        await device.clearRegistry();
-        await device.setRegistry(registryData);
-      } else {
-        // Fall back to launch params
-        const rs = RegistryState.from(registryData);
-        Object.assign(launchParams, rs.toLaunchParams());
+      const registryMode = options.registryMode ?? 'auto';
+      if (registryMode !== 'launchParams' && device.hasOdc) {
+        try {
+          await device.clearRegistry();
+          await device.setRegistry(registryData);
+          registryData = null;
+        } catch (err) {
+          if (registryMode === 'odc') throw err;
+          // ODC may not be running until after the sideloaded channel launches.
+          // Fall back to launch params so tests can still seed registry state.
+        }
+      }
+      if (registryData) {
+        const registry = RegistryState.from(registryData);
+        Object.assign(launchParams, registry.toLaunchParams());
       }
     }
 
@@ -229,10 +239,18 @@ export class RokuTestSession<TApp = unknown> implements RokuSession<TApp> {
         combined.merge(r.toJSON());
       }
       const device = this._device as any;
-      if (device.hasOdc) {
-        await device.clearRegistry();
-        await device.setRegistry(combined.toJSON());
-      } else {
+      const registryMode = this._options.registryMode ?? 'auto';
+      let relaunchRegistryData: Record<string, Record<string, string>> | null = combined.toJSON();
+      if (registryMode !== 'launchParams' && device.hasOdc) {
+        try {
+          await device.clearRegistry();
+          await device.setRegistry(relaunchRegistryData);
+          relaunchRegistryData = null;
+        } catch (err) {
+          if (registryMode === 'odc') throw err;
+        }
+      }
+      if (relaunchRegistryData) {
         Object.assign(params, combined.toLaunchParams());
       }
     }
