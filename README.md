@@ -158,6 +158,18 @@ const state = await tv.getAppState('dev'); // 'foreground' | 'not-running' | 'no
 await tv.waitForAppState('dev', 'foreground');
 ```
 
+## Key-sequence Focus
+
+Use `focusByKeys()` when you know the D-pad route to an element and want a setup helper that does not rely on bounds-based geometry. Use `focusPath()` when you are asserting the exact navigation contract.
+
+```typescript
+await tv.focusByKeys('watchlistBtn', {
+  keys: ['up', 'right'],
+  intermediateIds: ['playBtn'],
+  maxPressesPerKey: 4,
+});
+```
+
 ## Doctor
 
 Use `uncle-jesse doctor` to check the local package versions and the Roku capabilities your tests depend on.
@@ -168,6 +180,46 @@ uncle-jesse doctor --ip 192.168.1.100 --odc
 ```
 
 The command checks ECP reachability, device info, optional channel install state, optional ODC availability, optional screenshot capture, and optional debug-console log streaming. It exits non-zero when required checks fail.
+
+## Vitest Session Fixture
+
+For app E2E suites, prefer the session fixture from `@danecodes/uncle-jesse-test/vitest`. It centralizes connection setup, optional sideloading, registry state, launch args, page-object construction, screenshots, logs, and cleanup.
+
+```typescript
+// setup.ts
+import { configureUncleJesse } from '@danecodes/uncle-jesse-test/vitest';
+import { App } from './pages/App.js';
+
+configureUncleJesse({
+  sessionFactory: ({ testName }) => ({
+    deviceIp: process.env.ROKU_IP!,
+    devPassword: process.env.ROKU_DEV_PASSWORD ?? 'rokudev',
+    channelId: 'dev',
+    channelArtifact: { path: './roku-channel' },
+    launchArgs: { testName },
+    artifacts: {
+      baseDir: 'test-results',
+      captureLog: true,
+      screenshotOnFail: true,
+    },
+    appFactory: (device) => new App(device),
+  }),
+});
+```
+
+```typescript
+// app.test.ts
+import { test } from '@danecodes/uncle-jesse-test/vitest';
+
+test('opens details', async ({ app, device, session }) => {
+  await app.home.waitForLoaded();
+  await device.select();
+  await app.details.waitForLoaded();
+  await session.saveScreenshot('details-opened');
+});
+```
+
+See [examples/roku-golden](./examples/roku-golden) for a fuller example with page objects, registry state, log artifacts, screenshots, `focusByKeys`, and replay.
 
 ## Page Objects
 
