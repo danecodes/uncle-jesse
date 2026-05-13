@@ -43,6 +43,7 @@ export interface RokuSession<TApp = unknown> {
   app: TApp;
   screenshot(): Promise<Buffer | null>;
   saveScreenshot(name: string): Promise<string | null>;
+  saveLog(name: string): Promise<string | null>;
   dispose(): Promise<void>;
 }
 
@@ -247,16 +248,30 @@ export class RokuTestSession<TApp = unknown> implements RokuSession<TApp> {
     }
   }
 
-  /** Save captured logger output to a file. */
+  /** Save captured Roku log output, falling back to framework logger breadcrumbs. */
   async saveLog(name: string): Promise<string | null> {
-    if (this._logLines.length === 0) return null;
+    const logText = this.getCapturedLogText();
+    if (!logText) return null;
     const fs = await import('node:fs/promises');
     const path = await import('node:path');
     const dir = this._artifacts?.baseDir ?? 'test-results';
     await fs.mkdir(dir, { recursive: true });
     const file = path.join(dir, `${name}.log`);
-    await fs.writeFile(file, this._logLines.join('\n') + '\n');
+    await fs.writeFile(file, logText.endsWith('\n') ? logText : `${logText}\n`);
     return file;
+  }
+
+  private getCapturedLogText(): string | null {
+    const logs = (this._device as { logs?: { toText?: () => string } }).logs;
+    try {
+      const text = logs?.toText?.();
+      if (text?.trim()) return text;
+    } catch {
+      // Fall back to framework logger breadcrumbs below.
+    }
+
+    if (this._logLines.length === 0) return null;
+    return this._logLines.join('\n');
   }
 
   async dispose(): Promise<void> {

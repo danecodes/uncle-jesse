@@ -3,13 +3,22 @@ import { runTests } from './commands/test.js';
 import { runDiscover } from './commands/discover.js';
 import { runSideload } from './commands/sideload.js';
 
+declare const __UNCLE_JESSE_VERSION__: string | undefined;
+
+function getPackageVersion(): string {
+  if (typeof __UNCLE_JESSE_VERSION__ !== 'undefined') {
+    return __UNCLE_JESSE_VERSION__;
+  }
+  return process.env['npm_package_version'] ?? '0.0.0';
+}
+
 export function createCli(): Command {
   const program = new Command();
 
   program
     .name('uncle-jesse')
     .description('E2E testing framework for smart TVs')
-    .version('1.2.4');
+    .version(getPackageVersion());
 
   program
     .command('test')

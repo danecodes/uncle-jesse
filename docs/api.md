@@ -21,6 +21,7 @@ interface TVDevice {
 
   // Remote control
   press(key: RemoteKey, options?: { times?: number; delay?: number }): Promise<void>;
+  press(keys: RemoteKey[], options?: { delay?: number }): Promise<void>;
   longPress(key: RemoteKey, duration?: number): Promise<void>;
   type(text: string): Promise<void>;
 
@@ -42,6 +43,7 @@ interface TVDevice {
   $(selector: string): Promise<UIElement | null>;
   $$(selector: string): Promise<UIElement[]>;
   getFocusedElement(): Promise<UIElement | null>;
+  focusByKeys(targetId: string | string[], options: FocusByKeysOptions): Promise<void>;
   waitForElement(selector: string, options?: WaitOptions): Promise<UIElement>;
   waitForFocus(selector: string, options?: WaitOptions): Promise<UIElement>;
   waitForCondition<T>(predicate: () => Promise<T | null | false>, options?: WaitOptions): Promise<T>;
@@ -59,8 +61,37 @@ interface TVDevice {
 
   // Media
   screenshot(): Promise<Buffer>;
+
+  // Breadcrumbs and framework logging
+  on(handler: DeviceEventHandler): void;
+  off(handler: DeviceEventHandler): void;
+  logger: Logger;
 }
 ```
+
+### focusByKeys
+
+Use `focusByKeys()` when you know the D-pad route and want to drive focus to a known element id without relying on bounds-based geometry.
+
+```typescript
+await device.focusByKeys('actionBtn', {
+  keys: ['right'],
+  maxPressesPerKey: 4,
+});
+
+await device.focusByKeys('watchlistBtn', {
+  keys: ['up', 'right'],
+  intermediateIds: ['playBtn'],
+});
+
+await device.focusByKeys(['resumeBtn', 'playBtn'], {
+  keys: ['up', 'right'],
+});
+```
+
+Each key gets a press budget, defaulting to 6. Non-final keys can stop on `intermediateIds`; if they exhaust their budget, the helper moves to the next key. The final key must reach one of the target ids or the helper throws with the full press trail.
+
+Use `focusPath()` when you are testing a precise navigation contract. Use `focusByKeys()` when you are moving the app to a known state as setup for another assertion.
 
 ### RemoteKey
 
@@ -354,14 +385,24 @@ class RokuAdapter implements TVDevice {
   // App state
   getAppState(appId: string): Promise<'not-running' | 'foreground' | 'not-installed'>;
   waitForAppState(appId: string, state: 'not-running' | 'foreground' | 'not-installed', options?: WaitOptions): Promise<void>;
+  toHaveActiveApp(appId: string, options?: { timeout?: number }): Promise<void>;
   getPageSourceXml(): Promise<string>;
+  getPageSourceFormatted(): Promise<string>;
   sendInput(params: Record<string, string | number>): Promise<void>;
+  touch(x: number, y: number, op?: 'down' | 'up' | 'press' | 'move'): Promise<void>;
+  voiceCommand(utterance: string): Promise<void>;
+  voiceSeek(positionMs: number): Promise<void>;
 
-  // File operations (requires roku-odc)
+  // ODC setup, registry, and file operations (requires roku-odc)
+  connectOdc(options?: { ip?: string; port?: number }): Promise<void>;
   setOdc(odc: OdcLike): void;
+  get hasOdc(): boolean;
   pullFile(source: string): Promise<Buffer>;
   pushFile(destination: string, data: Buffer): Promise<void>;
   listFiles(path?: string): Promise<string[]>;
+  setRegistry(data: Record<string, Record<string, string>>): Promise<void>;
+  clearRegistry(sections?: string[]): Promise<void>;
+  getRegistry(): Promise<Record<string, Record<string, string>>>;
 
   // ODC node primitives (requires roku-odc >= 0.3.0)
   getField(nodeId: string, field: string): Promise<unknown>;
@@ -370,6 +411,28 @@ class RokuAdapter implements TVDevice {
   findNodes(filters: Record<string, unknown>): Promise<OdcNodeInfo[]>;
   getOdcFocusedNode(): Promise<OdcNodeInfo | null>;
   observeField(nodeId: string, field: string, options?: OdcObserveOptions): Promise<OdcObserveResult>;
+
+  // Log waits
+  matchLog(pattern: RegExp, options?: { timeout?: number }): Promise<RegExpMatchArray>;
+  matchAllLogs(pattern: RegExp, options?: { duration?: number }): Promise<RegExpMatchArray[]>;
+  waitForLog(predicate: (entry: LogEntry) => boolean, options?: { timeout?: number }): Promise<LogEntry>;
+  get isLogConnected(): boolean;
+
+  // Diagnostics
+  getDeviceInfo(): Promise<DeviceInfo>;
+  ping(timeoutMs?: number): Promise<boolean>;
+  waitForElementGone(selector: string, options?: WaitOptions): Promise<void>;
+  waitForText(selector: string, text: string, options?: WaitOptions): Promise<UIElement>;
+  getChanperf(): Promise<ChanperfSample>;
+  getSGNodesAll(): Promise<string>;
+  getSGNodesRoots(): Promise<string>;
+  getSGNode(nodeId: string): Promise<string>;
+  getGraphicsFrameRate(): Promise<string>;
+  getAppObjectCounts(): Promise<string>;
+  getAppThreadState(): Promise<string>;
+  startRendezvousTracking(): Promise<void>;
+  stopRendezvousTracking(): Promise<void>;
+  getRendezvousData(): Promise<string>;
 
   // Note: home() waits for the current app to exit before returning.
   // launchApp() and deepLink() wait for the target app to become active.
@@ -397,6 +460,79 @@ class RokuDiscovery {
 ```
 
 ## @danecodes/uncle-jesse-test
+
+### Recommended Vitest Fixture
+
+Use `@danecodes/uncle-jesse-test/vitest` for new Vitest suites. It creates a `RokuTestSession` per test, launches the channel, wires page objects through an app factory, and handles screenshots/log artifacts during teardown.
+
+```typescript
+// setup.ts
+import { configureUncleJesse } from '@danecodes/uncle-jesse-test/vitest';
+import { RegistryState } from '@danecodes/uncle-jesse-core';
+import { App } from './pages/App.js';
+
+configureUncleJesse({
+  sessionFactory: ({ testName, tags }) => ({
+    deviceIp: process.env.ROKU_IP!,
+    devPassword: process.env.ROKU_DEV_PASSWORD ?? 'rokudev',
+    channelId: 'dev',
+    channelArtifact: { path: '../test-channels/uncle-jesse-test-app' },
+    registry: [
+      new RegistryState().set('UNCLE_JESSE', 'testName', testName),
+    ],
+    launchArgs: {
+      testTags: tags.map((tag) => tag.name).join(','),
+    },
+    artifacts: {
+      baseDir: 'test-results',
+      captureLog: true,
+      screenshotOnFail: true,
+    },
+    appFactory: (device) => new App(device),
+  }),
+});
+```
+
+```typescript
+// app.test.ts
+import { expect } from 'vitest';
+import { test } from '@danecodes/uncle-jesse-test/vitest';
+
+test('home opens details @smoke', async ({ app, device, session }) => {
+  await app.home.waitForLoaded();
+  await device.select();
+  await app.details.waitForLoaded();
+
+  expect(await app.details.titleLabel.getText()).toContain('featured');
+  await session.saveScreenshot('details-opened');
+});
+```
+
+`RokuTestSession.create()` is also available directly from `@danecodes/uncle-jesse-test/roku` for custom runners.
+
+```typescript
+import { RokuTestSession } from '@danecodes/uncle-jesse-test/roku';
+
+const session = await RokuTestSession.create({
+  deviceIp: process.env.ROKU_IP!,
+  channelId: 'dev',
+});
+
+try {
+  await session.device.waitForElement('HomeScreen');
+} finally {
+  await session.dispose();
+}
+```
+
+The older root-level fixture helpers (`setDeviceFactory`, `setScreenshotOnFailure`, `setLogCapture`, `setTestHooks`) remain useful for low-level adapter tests or suites that need to manage launch lifecycle manually. For app E2E tests, prefer the session fixture because it keeps connection, sideload, registry, launch, logs, screenshots, and disposal in one place.
+
+Migration from the older fixture is usually:
+
+1. Move device construction into `configureUncleJesse({ sessionFactory })`.
+2. Return `channelArtifact`, `registry`, `launchArgs`, `artifacts`, and `appFactory` from the session factory.
+3. Import `test` from `@danecodes/uncle-jesse-test/vitest`.
+4. Replace `tv` fixture usage with `device`; use `session` when you need explicit screenshots, logs, relaunch, or disposal hooks.
 
 ### Vitest Plugin
 

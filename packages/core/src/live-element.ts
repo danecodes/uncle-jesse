@@ -84,8 +84,12 @@ export class LiveElement {
     return null;
   }
 
+  private async resolveCurrent() {
+    return this.device.$(this.fullSelector);
+  }
+
   async resolve() {
-    const el = await this.device.$(this.fullSelector);
+    const el = await this.resolveCurrent();
     if (!el) return null;
 
     const identity = captureIdentity(el);
@@ -103,12 +107,11 @@ export class LiveElement {
     return el;
   }
 
-  isStale(): Promise<boolean> {
-    return this.resolve().then((el) => {
-      if (!el) return true;
-      if (!this.cachedIdentity) return false;
-      return !matchesIdentity(this.cachedIdentity, captureIdentity(el));
-    });
+  async isStale(): Promise<boolean> {
+    const el = await this.resolveCurrent();
+    if (!el) return true;
+    if (!this.cachedIdentity) return false;
+    return !matchesIdentity(this.cachedIdentity, captureIdentity(el));
   }
 
   async getAttribute(name: string): Promise<string | undefined> {
