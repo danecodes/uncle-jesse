@@ -60,7 +60,7 @@ This backlog comes from the integration/codebase review after the `focusByKeys` 
   - Generate one smoke test and one page object.
   - Detect package manager where possible.
 
-- [ ] Add `uncle-jesse doctor`.
+- [x] Add `uncle-jesse doctor`.
   - Check device reachability.
   - Check ECP availability.
   - Check developer mode assumptions.

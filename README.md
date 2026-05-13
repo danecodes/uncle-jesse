@@ -158,6 +158,17 @@ const state = await tv.getAppState('dev'); // 'foreground' | 'not-running' | 'no
 await tv.waitForAppState('dev', 'foreground');
 ```
 
+## Doctor
+
+Use `uncle-jesse doctor` to check the local package versions and the Roku capabilities your tests depend on.
+
+```bash
+uncle-jesse doctor --ip 192.168.1.100 --channel dev --screenshot --logs
+uncle-jesse doctor --ip 192.168.1.100 --odc
+```
+
+The command checks ECP reachability, device info, optional channel install state, optional ODC availability, optional screenshot capture, and optional debug-console log streaming. It exits non-zero when required checks fail.
+
 ## Page Objects
 
 If you're coming from WebdriverIO, `BasePage` and `BaseComponent` work the same way you're used to. See the [migration guide](./docs/migration.md). For simpler tests, `TVPage` in `@danecodes/uncle-jesse-test` is a lighter base class that takes a device directly.

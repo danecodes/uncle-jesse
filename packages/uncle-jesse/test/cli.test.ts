@@ -9,4 +9,8 @@ describe('createCli', () => {
   it('reports the package version', () => {
     expect(createCli().version()).toBe(pkg.version);
   });
+
+  it('registers the doctor command', () => {
+    expect(createCli().commands.map((command) => command.name())).toContain('doctor');
+  });
 });

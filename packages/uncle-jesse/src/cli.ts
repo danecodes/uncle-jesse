@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { runTests } from './commands/test.js';
 import { runDiscover } from './commands/discover.js';
 import { runSideload } from './commands/sideload.js';
+import { runDoctor } from './commands/doctor.js';
 
 declare const __UNCLE_JESSE_VERSION__: string | undefined;
 
@@ -41,6 +42,18 @@ export function createCli(): Command {
     .option('--ip <address>', 'Device IP (or set UNCLE_JESSE_ROKU_IP)')
     .option('--password <password>', 'Dev password (default: rokudev)')
     .action(runSideload);
+
+  program
+    .command('doctor')
+    .description('Check Roku connectivity and Uncle Jesse test prerequisites')
+    .option('--ip <address>', 'Device IP (or set UNCLE_JESSE_ROKU_IP / ROKU_IP)')
+    .option('--password <password>', 'Dev password (default: rokudev)')
+    .option('--timeout <ms>', 'Per-check timeout in ms', '5000')
+    .option('--channel <id>', 'Channel id to check (or set ROKU_CHANNEL_ID)')
+    .option('--odc', 'Require ODC availability')
+    .option('--screenshot', 'Verify screenshot capture support')
+    .option('--logs', 'Verify debug console log capture support')
+    .action(runDoctor);
 
   return program;
 }
